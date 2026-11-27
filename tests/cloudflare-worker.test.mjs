@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { Script, runInNewContext } from "node:vm";
 
 const source = readFileSync(new URL("../src/cloudflare/worker.js", import.meta.url), "utf8");
-const moduleSource = source.replace(/\\bexport default\\s+/, "globalThis.__worker = ");
+const moduleSource = source.replace(/\bexport default\s+/, "globalThis.__worker = ");
 assert.notEqual(moduleSource, source, "Cloudflare Worker default export exists");
 assert.doesNotThrow(() => new Script(moduleSource), "Cloudflare Worker entrypoint parses");
 
@@ -15,7 +15,7 @@ const worker = sandbox.__worker;
 test("GET /healthz returns the configured Worker service name", async () => {
   const response = await worker.fetch(new Request("https://zero.test/healthz"));
   assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type"), /application\\/json/);
+  assert.match(response.headers.get("content-type"), /application\/json/);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), { status: "ok", service: "zero-creative-studio" });
 });
