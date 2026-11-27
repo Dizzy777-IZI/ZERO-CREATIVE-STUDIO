@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zero-creative-studio-router"
+version = "0.1.0"
+description = "Privacy-first engine routing policy for ZERO Creative Studio"
+requires-python = ">=3.11"
+license = { text = "Proprietary - private project" }
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
