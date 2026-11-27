@@ -1,0 +1,34 @@
+version: 1
+provider: oracle_cloud_infrastructure
+profile: always_free_only
+
+region:
+  use_tenancy_home_region: true
+
+compute:
+  shape: VM.Standard.A1.Flex
+  architecture: arm64
+  ocpus: 1
+  memory_gb: 6
+  max_ocpus: 2
+  max_memory_gb: 12
+  boot_volume_gb: 50
+  max_total_block_storage_gb: 200
+  gpu_enabled: false
+
+billing:
+  provisioning_enabled: false
+  paid_fallback: false
+  trial_credit_resources_allowed: false
+  require_always_free_label: true
+
+network:
+  public_app_ingress_ports: []
+  ssh_cidr: null
+  expose_database: false
+
+runtime:
+  private_local_enabled: false
+  cloud_enabled: false
+  cloud_media_upload_enabled: false
+  use_personal_pc_as_worker: false
