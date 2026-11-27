@@ -17,9 +17,9 @@ ZERO is designed around two complementary processing paths:
 
 Private processing is the default. Source media must not be sent to a cloud provider without explicit per-job consent, and there is no silent cloud fallback. "Offline inference" means the private worker can run inference without outbound internet after provisioning; the complete job submission workflow still requires a controlled private connection.
 
-**Current infrastructure mode: Rp0/month.** Both engines are disabled in the runtime routing configuration. This repository can be developed and tested without a GPU server, paid cloud API, or local AI installation. Real model inference remains unavailable until an independently managed worker or explicitly approved cloud provider is provisioned.
+**Current infrastructure mode: Rp0/month.** Both engines are disabled in the runtime routing configuration. Cloudflare Pages + Workers is the temporary target for a static dashboard and lightweight read-only control API only. It is not a Linux VPS or an AI inference host. Real model inference remains unavailable until a separately managed worker or explicitly approved cloud provider is provisioned.
 
-See [Dual-Engine Architecture](docs/DUAL-ENGINE-ARCHITECTURE.md), [Routing Policy](ai-workflows/engine-routing.yaml), and [Implementation Roadmap](docs/DUAL-ENGINE-ROADMAP.md).
+See [Dual-Engine Architecture](docs/DUAL-ENGINE-ARCHITECTURE.md), [Routing Policy](ai-workflows/engine-routing.yaml), [Implementation Roadmap](docs/DUAL-ENGINE-ROADMAP.md), and [Cloudflare Free Preparation](docs/CLOUDFLARE-FREE-PREP.md).
 
 ## Workstreams
 
@@ -37,15 +37,15 @@ See [Dual-Engine Architecture](docs/DUAL-ENGINE-ARCHITECTURE.md), [Routing Polic
 ├── AGENTS.md
 ├── README.md
 ├── docs/
+│   ├── CLOUDFLARE-FREE-PREP.md
 │   ├── DUAL-ENGINE-ARCHITECTURE.md
 │   └── DUAL-ENGINE-ROADMAP.md
-├── photo-editing/
-├── video-editing/
-├── social-media/
-├── ai-workflows/
-│   ├── README.md
-│   └── engine-routing.yaml
-├── src/zero_router/
+├── infra/
+├── src/
+│   ├── cloudflare/worker.js
+│   └── zero_router/
+├── web/cloudflare/index.html
+├── wrangler.toml
 ├── tests/
 ├── tools/
 ├── automation/
@@ -67,4 +67,4 @@ Directories receive executable implementation as concrete workflows and tools ar
 
 ## Current status
 
-Architecture and the privacy-first routing baseline are merged into `main`. Phase B includes a versioned job manifest, YAML policy loader, and schema/config validation. The expanded test suite passed in GitHub Actions on Python 3.11 and 3.12 (15 tests across the routing, job-schema, and config suites). Both engines are explicitly disabled under the current Rp0/month constraint. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).
+Architecture and the privacy-first routing baseline are merged into `main`. Phase B includes a versioned job manifest, YAML policy loader, and schema/config validation. The expanded test suite passed in GitHub Actions on Python 3.11 and 3.12 (15 tests across the routing, job-schema, and config suites). Both engines are explicitly disabled under the current Rp0/month constraint. Cloudflare dashboard and Worker starter files are prepared in a feature branch; no Cloudflare account, project, Worker, or Pages deployment exists yet. No GPU worker, model runtime, job queue, production photo/video pipeline, or rendering service is deployed. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).

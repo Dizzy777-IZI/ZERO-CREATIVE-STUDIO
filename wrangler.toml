@@ -1,0 +1,4 @@
+name = "zero-control-api"
+main = "src/cloudflare/worker.js"
+compatibility_date = "2026-11-27"
+workers_dev = true
