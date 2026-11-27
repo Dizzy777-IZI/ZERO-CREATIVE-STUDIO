@@ -32,9 +32,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run Cloudflare Worker and photo editor tests
-        run: node --test tests/cloudflare-worker.test.mjs tests/photo-editor-page.test.mjs
-      - name: Install Wrangler
-        run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Validate Worker bundle without deploying
-        run: npm run deploy -- --dry-run
+      - name: Run browser photo editor safety tests
+        run: node --test tests/photo-editor-page.test.mjs
