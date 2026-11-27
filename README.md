@@ -17,6 +17,8 @@ ZERO is designed around two complementary processing paths:
 
 Private processing is the default. Source media must not be sent to a cloud provider without explicit per-job consent, and there is no silent cloud fallback. "Offline inference" means the private worker can run inference without outbound internet after provisioning; the complete job submission workflow still requires a controlled private connection.
 
+**Current infrastructure mode: Rp0/month.** Both engines are disabled in the runtime routing configuration. This repository can be developed and tested without a GPU server, paid cloud API, or local AI installation. Real model inference remains unavailable until an independently managed worker or explicitly approved cloud provider is provisioned.
+
 See [Dual-Engine Architecture](docs/DUAL-ENGINE-ARCHITECTURE.md), [Routing Policy](ai-workflows/engine-routing.yaml), and [Implementation Roadmap](docs/DUAL-ENGINE-ROADMAP.md).
 
 ## Workstreams
@@ -65,4 +67,4 @@ Directories receive executable implementation as concrete workflows and tools ar
 
 ## Current status
 
-The architecture and privacy-first routing baseline are merged into `main`. An executable Python routing-policy core and eight unit tests are included; GitHub Actions passed on Python 3.11 and 3.12. The YAML routing policy is currently a documented policy reference and is not yet loaded by the Python router. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).
+Architecture and the privacy-first routing baseline are merged into `main`. Phase B now includes a versioned job manifest, YAML policy loader, and tests for schema/config validation. The routing configuration explicitly disables both engines under the current Rp0/month constraint. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. CI results for this Phase B update are pending. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).
