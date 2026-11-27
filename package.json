@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "description": "ZERO Creative Studio Cloudflare Worker control plane",
   "scripts": {
-    "deploy": "wrangler deploy",
-    "preview": "wrangler preview"
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.68.0"
