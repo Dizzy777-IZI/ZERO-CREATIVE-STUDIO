@@ -71,7 +71,7 @@
   const MAX_PIXELS = 40_000_000;
   const fileInput = document.getElementById("photo");
   const canvas = document.getElementById("preview");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const ctx = canvas.getContext("2d");
   const empty = document.getElementById("empty");
   const controls = document.getElementById("controls");
   const status = document.getElementById("status");
