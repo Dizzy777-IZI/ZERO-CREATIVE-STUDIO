@@ -12,8 +12,8 @@ routing:
 
 engines:
   private_local:
-    enabled: true
-    deployment_status: planned
+    enabled: false
+    deployment_status: blocked_pending_zero_budget
     execution_location: owner_controlled_worker
     outbound_network_during_inference: disabled_when_feasible
     accepted_data_classifications:
