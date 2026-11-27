@@ -68,6 +68,7 @@
 (() => {
   "use strict";
   const MAX_BYTES = 30 * 1024 * 1024;
+  const MAX_PIXELS = 40_000_000;
   const fileInput = document.getElementById("photo");
   const canvas = document.getElementById("preview");
   const ctx = canvas.getContext("2d", { alpha: false });
@@ -117,6 +118,13 @@
     sourceUrl = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
+      if (image.naturalWidth * image.naturalHeight > MAX_PIXELS) {
+        URL.revokeObjectURL(sourceUrl);
+        sourceUrl = null;
+        fileInput.value = "";
+        announce("Resolusi foto terlalu besar untuk versi awal (maksimal 40 megapiksel).");
+        return;
+      }
       sourceImage = image;
       rotation = 0;
       sliders.forEach(name => { document.getElementById(name).value = 100; });
