@@ -67,4 +67,4 @@ Directories receive executable implementation as concrete workflows and tools ar
 
 ## Current status
 
-Architecture and the privacy-first routing baseline are merged into `main`. Phase B now includes a versioned job manifest, YAML policy loader, and tests for schema/config validation. The routing configuration explicitly disables both engines under the current Rp0/month constraint. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. CI results for this Phase B update are pending. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).
+Architecture and the privacy-first routing baseline are merged into `main`. Phase B includes a versioned job manifest, YAML policy loader, and schema/config validation. The expanded test suite passed in GitHub Actions on Python 3.11 and 3.12 (15 tests across the routing, job-schema, and config suites). Both engines are explicitly disabled under the current Rp0/month constraint. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).
