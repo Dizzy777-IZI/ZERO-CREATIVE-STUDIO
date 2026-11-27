@@ -1,16 +1,17 @@
 /**
- * ZERO Cloudflare control-plane starter.
- * Public endpoints expose only non-sensitive runtime capability status.
- * No media upload, inference, queue, storage, or paid-service binding exists.
+ * ZERO Cloudflare read-only control-plane Worker.
+ * Public endpoints expose only non-sensitive capability status.
+ * Inference, media upload, queues, storage, and paid bindings stay disabled.
  */
+const SERVICE = "zero-creative-studio";
 const STATUS = Object.freeze({
   project: "ZERO Creative Studio",
   mode: "rp0",
-  service: "read-only-control-api",
+  service: SERVICE,
   cloud_inference_enabled: false,
   private_inference_enabled: false,
   media_upload_enabled: false,
-  note: "Control-plane API only; no inference worker is connected."
+  note: "Read-only control API; no inference worker is connected."
 });
 
 function json(body, status = 200) {
@@ -31,7 +32,7 @@ export default {
       return json({ error: "method_not_allowed" }, 405);
     }
     if (url.pathname === "/healthz") {
-      return json({ status: "ok", service: "zero-control-api" });
+      return json({ status: "ok", service: SERVICE });
     }
     if (url.pathname === "/api/status") {
       return json(STATUS);
