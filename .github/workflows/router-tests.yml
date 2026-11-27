@@ -36,3 +36,5 @@ jobs:
         run: node --test tests/photo-editor-page.test.mjs
       - name: Run browser video editor safety tests
         run: node --test tests/video-editor-page.test.mjs
+      - name: Run Cloudflare Worker smoke tests
+        run: node --test tests/cloudflare-worker.test.mjs
