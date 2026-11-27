@@ -26,6 +26,8 @@ test("photo editor ignores stale image loads and releases object URLs", () => {
   assert.match(html, /function releaseSource\(\)/);
   assert.match(html, /URL\.revokeObjectURL\(sourceUrl\)/);
   assert.match(html, /image\.onerror/);
+  assert.match(html, /if\(render\(\)\)announce\("Foto berhasil dibuka/);
+  assert.match(html, /return false/);
 });
 
 test("photo editor rejects invalid dimensions and does not upload media", () => {
