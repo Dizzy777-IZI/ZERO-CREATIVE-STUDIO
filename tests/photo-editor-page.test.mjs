@@ -15,6 +15,7 @@ test("photo editor includes non-destructive basic adjustments and export", () =>
   for (const control of ["brightness", "contrast", "saturation", "rotate", "reset", "download"]) {
     assert.match(html, new RegExp('id="' + control + '"'));
   }
+  assert.match(html, /filterName = name === "saturation" \? "saturate" : name/);
   assert.match(html, /canvas\.toBlob/);
   assert.match(html, /link\.download = "zero-edit-/);
 });
