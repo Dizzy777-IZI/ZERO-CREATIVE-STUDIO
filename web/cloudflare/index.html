@@ -1,36 +1,32 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="description" content="ZERO Creative Studio control-plane preview">
-  <title>ZERO Creative Studio</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <meta name="description" content="ZERO Creative Studio control-plane preview"><title>ZERO Creative Studio</title>
   <style>
     :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#eef2ff;background:#0b1020}
     *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
     main{width:min(720px,100%);border:1px solid #28334d;border-radius:20px;padding:28px;background:#111a2d}
-    .eyebrow{color:#93a4c7;letter-spacing:.14em;font-size:.75rem;font-weight:700}
-    h1{font-size:clamp(2rem,7vw,3.5rem);margin:.5rem 0}
+    .eyebrow{color:#93a4c7;letter-spacing:.14em;font-size:.75rem;font-weight:700}h1{font-size:clamp(2rem,7vw,3.5rem);margin:.5rem 0}
     p{color:#b8c4dc;line-height:1.65}.status{display:inline-block;padding:6px 10px;border-radius:99px;background:#26334b;color:#d7e4ff;font-size:.8rem}
     ul{padding-left:20px;color:#cbd5e1;line-height:1.9}.foot{border-top:1px solid #28334d;margin-top:24px;padding-top:16px;font-size:.85rem}
+    .tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}.tool{display:block;padding:14px;border:1px solid #394968;border-radius:12px;background:#0b1425;text-decoration:none;color:#dbeafe}.tool strong{display:block;margin-bottom:5px}.tool span{font-size:.85rem;color:#b8c4dc}
+    @media(max-width:560px){.tools{grid-template-columns:1fr}}
   </style>
 </head>
-<body>
-  <main>
-    <div class="eyebrow">CREATIVE SYSTEM / CONTROL PLANE</div>
-    <h1>ZERO</h1>
-    <p>Fondasi dashboard ZERO Creative Studio. Ini adalah preview statis; belum terhubung ke akun Cloudflare atau API produksi.</p>
-    <span class="status">MODE Rp0 · INFERENCE NONAKTIF</span>
-    <p><a href="./editor.html">Buka Editor Foto Beta →</a> — koreksi dasar langsung di browser, tanpa upload ke server.</p>
-    <h2>Kapabilitas saat ini</h2>
-    <ul>
-      <li>Dashboard statis: disiapkan untuk Cloudflare Pages.</li>
-      <li>API status: starter Worker tersedia, belum di-deploy.</li>
-      <li>Cloud AI dan private inference: nonaktif.</li>
-      <li>Upload media: nonaktif; tidak ada fallback otomatis.</li>
-    </ul>
-    <p class="foot">ZERO · Privacy-first development · Deployment requires owner-controlled Cloudflare account setup.</p>
-  </main>
-</body>
-</html>
+<body><main>
+  <div class="eyebrow">CREATIVE SYSTEM / CONTROL PLANE</div><h1>ZERO</h1>
+  <p>Fondasi dashboard ZERO Creative Studio. Ini adalah preview statis; belum terhubung ke akun Cloudflare atau API produksi.</p>
+  <span class="status">MODE Rp0 · AI INFERENCE NONAKTIF</span>
+  <div class="tools">
+    <a class="tool" href="./editor.html"><strong>Editor Foto Beta</strong><span>Koreksi warna, rotasi, ekspor PNG · lokal</span></a>
+    <a class="tool" href="./video-editor.html"><strong>Editor Video Beta</strong><span>Pratinjau, potong klip, ekspor WebM · lokal</span></a>
+  </div>
+  <h2>Kapabilitas saat ini</h2><ul>
+    <li>Dashboard dan editor berjalan sebagai halaman statis browser.</li>
+    <li>AI generatif dan private inference: nonaktif, belum ada model runtime.</li>
+    <li>Upload ke server: nonaktif; media diproses lokal oleh editor beta.</li>
+    <li>Video beta mendukung satu rentang potong, bukan timeline multi-track.</li>
+  </ul>
+  <p class="foot">ZERO · Privacy-first development · Deployment requires owner-controlled Cloudflare Pages setup.</p>
+</main></body></html>

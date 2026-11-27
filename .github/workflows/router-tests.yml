@@ -2,7 +2,7 @@ name: ZERO Router Tests
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feature/**", "feat/**"]
   pull_request:
     branches: [main]
 
@@ -34,3 +34,7 @@ jobs:
           node-version: "22"
       - name: Run browser photo editor safety tests
         run: node --test tests/photo-editor-page.test.mjs
+      - name: Run browser video editor safety tests
+        run: node --test tests/video-editor-page.test.mjs
+      - name: Run Cloudflare Worker smoke tests
+        run: node --test tests/cloudflare-worker.test.mjs
