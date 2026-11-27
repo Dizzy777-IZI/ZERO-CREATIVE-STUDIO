@@ -25,7 +25,7 @@ For the existing Worker connected to this GitHub repository, verify these values
 | Wrangler config | `wrangler.toml` at repository root |
 | Worker name | `zero-creative-studio` |
 
-Do not put `npx wrangler preview` in the deploy command. Preview deployments are controlled by the Cloudflare Preview Builds setting; they are not a replacement for the deploy command.
+Keep the production Deploy command and Preview command separate. The production command must be `npm run deploy`; the Preview command must be `npm run preview`. Cloudflare runs the Preview command for non-production branches when Preview Builds are enabled. Do not set `npx wrangler preview` as the production Deploy command. If Preview Builds continue to fail, disable them temporarily and keep production deployment separate until the exact build log is reviewed.
 
 For preview builds, enable Preview Builds only if the account exposes the feature without enabling a paid plan. Protect preview deployments with Cloudflare Access only when an Access application/policy is already configured and tested; otherwise leave protection disabled until it can be configured without a paid upgrade or locking out the owner.
 
