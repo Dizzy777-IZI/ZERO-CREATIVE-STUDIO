@@ -28,3 +28,5 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m unittest discover -s tests -v
+      - name: Run Cloudflare Worker tests
+        run: node --test tests/cloudflare-worker.test.mjs
