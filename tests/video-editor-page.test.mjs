@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { Script } from "node:vm";
 
 const html = readFileSync(new URL("../web/cloudflare/video-editor.html", import.meta.url), "utf8");
 
@@ -34,4 +35,14 @@ test("recorder failures clean up tracks and never download an empty output", () 
 test("video editor contains no network upload implementation", () => {
   assert.doesNotMatch(html, /fetch\s*\(|XMLHttpRequest|https?:\/\//i);
   assert.match(html, /Tidak ada upload ke server ZERO/i);
+});
+
+test("video editor script parses and locks controls during export", () => {
+  const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  assert.ok(script, "inline editor script exists");
+  assert.doesNotThrow(() => new Script(script));
+  assert.match(script, /video\.controls=!value/);
+  assert.match(script, /document\.getElementById\(id\)\.disabled=value/);
+  assert.match(script, /Tunggu ekspor selesai sebelum mengganti video/);
+  assert.match(script, /failureMessage/);
 });
