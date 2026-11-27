@@ -43,6 +43,8 @@ See [Dual-Engine Architecture](docs/DUAL-ENGINE-ARCHITECTURE.md), [Routing Polic
 ├── ai-workflows/
 │   ├── README.md
 │   └── engine-routing.yaml
+├── src/zero_router/
+├── tests/
 ├── tools/
 ├── automation/
 └── changelog/
@@ -63,4 +65,4 @@ Directories receive executable implementation as concrete workflows and tools ar
 
 ## Current status
 
-The dual-engine architecture, privacy-first routing policy, and photo/video workflow specifications are documented on the feature branch. The router is not yet executable. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. Follow [the roadmap](docs/DUAL-ENGINE-ROADMAP.md) and update this status only when implementation and relevant checks exist.
+The architecture and privacy-first routing baseline are merged into `main`. An executable Python routing-policy core and eight unit tests are included; GitHub Actions passed on Python 3.11 and 3.12. The YAML routing policy is currently a documented policy reference and is not yet loaded by the Python router. No GPU worker, model runtime, cloud provider adapter, job queue, production photo/video pipeline, or rendering service is deployed. See [the roadmap](docs/DUAL-ENGINE-ROADMAP.md).
