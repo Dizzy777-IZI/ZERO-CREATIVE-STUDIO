@@ -65,7 +65,7 @@ test("WebM duration helper inserts seekable metadata using the stream timecode s
   const output = await sandbox.addWebmDuration(sample, 1500);
   const bytes = new Uint8Array(await output.arrayBuffer());
   let durationIndex = -1;
-  for (let i = 0; i < bytes.length - 11; i++) {
+  for (let i = 0; i <= bytes.length - 11; i++) {
     if (bytes[i] === 0x44 && bytes[i + 1] === 0x89 && bytes[i + 2] === 0x88) {
       durationIndex = i;
       break;
