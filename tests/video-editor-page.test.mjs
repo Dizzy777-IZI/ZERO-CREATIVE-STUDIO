@@ -38,7 +38,7 @@ test("video editor contains no network upload implementation", () => {
 });
 
 test("video editor script parses and locks controls during export", () => {
-  const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
   assert.match(script, /video\.controls=!value/);
