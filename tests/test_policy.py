@@ -71,13 +71,13 @@ class RoutingPolicyTests(unittest.TestCase):
         )
         self.assertFalse(decision.allowed)
 
-    def test_disabled_engine_is_not_selected(self):
+    def test_disabled_private_engine_does_not_fall_back_for_private_data(self):
         decision = choose_engine(
             JobRequest(Operation.COLOR_ADJUSTMENT),
             EngineCapabilities(False, ALL), self.cloud,
         )
-        self.assertTrue(decision.allowed)
-        self.assertEqual(decision.engine, Engine.CLOUD) if False else self.assertEqual(decision.engine, Engine.NONE)
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.engine, Engine.NONE)
 
 
 if __name__ == "__main__":
