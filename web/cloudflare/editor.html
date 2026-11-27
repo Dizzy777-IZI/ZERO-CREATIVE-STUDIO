@@ -84,7 +84,7 @@
       ctx.drawImage(sourceImage,-width/2,-height/2,width,height);ctx.restore();saved=false;
       sliders.forEach(name=>{document.getElementById(name+"Value").textContent=document.getElementById(name).value+"%"});
       canvas.hidden=false;empty.hidden=true;return true;
-    }catch(error){if(typeof saved!=="undefined"&&saved){try{ctx.restore()}catch{}}announce("Pratinjau gagal: "+error.message);return false}
+    }catch(error){if(saved){try{ctx.restore()}catch{}}announce("Pratinjau gagal: "+error.message);return false}
   }
   fileInput.addEventListener("change",()=>{
     const file=fileInput.files&&fileInput.files[0];if(!file)return;
