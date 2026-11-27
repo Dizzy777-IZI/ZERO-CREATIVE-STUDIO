@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { Script, runInNewContext } from "node:vm";
 
 const source = readFileSync(new URL("../src/cloudflare/worker.js", import.meta.url), "utf8");
-const moduleSource = source.replace(/^export default\s+/, "globalThis.__worker = ");
+const moduleSource = source.replace(/\bexport default\s+/, "globalThis.__worker = ");
 assert.notEqual(moduleSource, source, "Cloudflare Worker default export exists");
 assert.doesNotThrow(() => new Script(moduleSource), "Cloudflare Worker entrypoint parses");
 
