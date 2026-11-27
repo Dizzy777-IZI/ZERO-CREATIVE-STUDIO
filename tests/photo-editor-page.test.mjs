@@ -7,6 +7,7 @@ const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta
 test("photo editor exposes local image input and supported formats", () => {
   assert.match(html, /type="file" accept="image\/jpeg,image\/png,image\/webp,image\/avif"/);
   assert.match(html, /MAX_BYTES = 30 \* 1024 \* 1024/);
+  assert.match(html, /MAX_PIXELS = 40_000_000/);
   assert.match(html, /URL\.createObjectURL\(file\)/);
 });
 
