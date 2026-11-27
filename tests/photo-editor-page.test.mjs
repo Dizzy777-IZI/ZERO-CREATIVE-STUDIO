@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { Script } from "node:vm";
 import { test } from "node:test";
 
 const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta.url), "utf8");
@@ -36,4 +37,12 @@ test("photo editor rejects invalid dimensions and does not upload media", () => 
   assert.doesNotMatch(html, /XMLHttpRequest/);
   assert.doesNotMatch(html, /https?:\/\//);
   assert.match(html, /Tidak ada upload ke server/);
+});
+
+test("photo editor inline script parses and reports preview failures", () => {
+  const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  assert.ok(script, "inline editor script exists");
+  assert.doesNotThrow(() => new Script(script));
+  assert.match(script, /if\(render\(\)\)announce/);
+  assert.match(script, /catch\(error\)/);
 });
