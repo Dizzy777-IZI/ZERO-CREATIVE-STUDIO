@@ -40,7 +40,7 @@ test("photo editor rejects invalid dimensions and does not upload media", () => 
 });
 
 test("photo editor inline script parses and reports preview failures", () => {
-  const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
   assert.match(script, /if\(render\(\)\)announce/);
