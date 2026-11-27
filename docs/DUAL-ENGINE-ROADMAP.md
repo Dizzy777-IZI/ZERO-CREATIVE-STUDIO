@@ -6,7 +6,8 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 |---|---|---|---|
 | A | Dual-engine architecture and privacy policy | Privacy, fallback, and deployment semantics documented | Complete |
 | B | Routing core, job schema, and config integration | Deterministic router, validated job schema, config-driven capabilities, and unit tests | Complete — merged to main; CI passed on Python 3.11 and 3.12 |
-| C | Private inference worker | Server selected, model licenses checked, health and offline-inference tests pass | Blocked — Rp0/month; no separate worker |
+| C1 | Oracle Always Free preparation | OCI profile, strict zero-cost guardrails, and documentation validated | In review — no OCI resources created |
+| C2 | Private inference worker | Server selected, model licenses checked, health and offline-inference tests pass | Blocked — no separate inference worker or GPU budget |
 | D | Cloud adapter | Provider/API verified, consent gate and cost controls tested | Blocked — no approved provider or API budget |
 | E | Orchestration | Queue, progress, cancellation, previews, and exports tested end-to-end | Planned |
 | F | Production hardening | Auth, quotas, retention, monitoring, backup, security and recovery tests pass | Planned |
@@ -20,6 +21,13 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 - Tests cover malformed manifests, invalid config, cloud-consent defaults, and disabled engines.
 - Expanded suite passed in GitHub Actions on Python 3.11 and 3.12 (15 tests total).
 
+## Oracle Always Free preparation
+
+- `infra/oracle/always-free.yaml` is a policy profile, not a deployment manifest.
+- A Python validator rejects non-A1 shapes, resource values above the published Always Free ceilings, GPU use, paid fallback, public ingress, and runtime activation.
+- `docs/ORACLE-ALWAYS-FREE-PREP.md` documents manual account and provisioning gates.
+- No OCI account, VM, network, storage, or paid service has been created.
+
 ## Rp0/month operating mode
 
 - No paid GPU server, hosted inference API, or cloud media upload is enabled.
@@ -27,15 +35,15 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 - Development uses repository code, unit tests, and GitHub Actions; no model downloads or local AI runtime are required.
 - A job requiring inference must be reported as unavailable until an engine is provisioned. It must never be silently redirected to another engine.
 
-## Constraints to resolve before Phase C
+## Constraints to resolve before private inference
 
-- Hosting location and monthly GPU budget.
+- Separate worker location and monthly GPU budget.
 - Whether the first private worker is CPU-only or GPU-backed.
 - Required image/video formats, sizes, and throughput.
 - Candidate model licenses and commercial-use terms.
 - Data retention and backup policy.
 
-## Constraints to resolve before Phase D
+## Constraints to resolve before cloud inference
 
 - First cloud provider and supported image/video APIs.
 - Per-job consent UX.
