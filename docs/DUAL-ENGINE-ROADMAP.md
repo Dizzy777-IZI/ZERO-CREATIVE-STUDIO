@@ -6,7 +6,7 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 |---|---|---|---|
 | A | Dual-engine architecture and privacy policy | Privacy, fallback, and deployment semantics documented | Complete |
 | B | Routing core, job schema, and config integration | Deterministic router, validated job schema, config-driven capabilities, and unit tests | Complete — merged to main; CI passed on Python 3.11 and 3.12 |
-| C1 | Oracle Always Free preparation | OCI profile, strict zero-cost guardrails, and documentation validated | In review — no OCI resources created |
+| C1 | Oracle Always Free preparation | OCI profile, strict zero-cost guardrails, and documentation validated | Complete — PR #4 merged; CI passed; no OCI resources created |
 | C2 | Private inference worker | Server selected, model licenses checked, health and offline-inference tests pass | Blocked — no separate inference worker or GPU budget |
 | D | Cloud adapter | Provider/API verified, consent gate and cost controls tested | Blocked — no approved provider or API budget |
 | E | Orchestration | Queue, progress, cancellation, previews, and exports tested end-to-end | Planned |
@@ -25,7 +25,8 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 
 - `infra/oracle/always-free.yaml` is a policy profile, not a deployment manifest.
 - A Python validator rejects non-A1 shapes, resource values above the published Always Free ceilings, GPU use, paid fallback, public ingress, and runtime activation.
-- `docs/ORACLE-ALWAYS-FREE-PREP.md` documents manual account and provisioning gates.
+- `docs/ORACLE-ALWAYS-FREE-PREP.md` documents manual account and provisioning gates, home-region rules, idle reclamation thresholds, and signup verification caveats.
+- PR #4 merged after Python 3.11 and 3.12 CI checks passed.
 - No OCI account, VM, network, storage, or paid service has been created.
 
 ## Rp0/month operating mode

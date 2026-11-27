@@ -3,17 +3,19 @@
 ## Purpose
 
 Prepare a future Oracle Cloud Infrastructure (OCI) control-plane host for ZERO
-without creating cloud resources or incurring charges. This change is policy
-and validation only: it does not authenticate to OCI, create a tenancy, create
-a VM, open network ports, or deploy an application.
+without creating cloud resources or incurring charges. This is policy and
+validation only: it does not authenticate to OCI, create a tenancy, create a
+VM, open network ports, or deploy an application.
 
 ## Selected baseline
 
-The current OCI Always Free documentation lists the Ampere A1 allowance as
-1,500 OCPU-hours and 9,000 GB-hours per month, equivalent to a continuously
-running allocation of up to 2 OCPUs and 12 GB RAM. The current Always Free
-Block Volume allowance is 200 GB total in the tenancy home region. Limits and
-eligibility must be rechecked in the OCI Console before any resource is created.
+Oracle's current OCI documentation lists the Ampere A1 Always Free allowance
+as 1,500 OCPU-hours and 9,000 GB-hours per month, equivalent to a continuously
+running allocation of up to 2 OCPUs and 12 GB RAM. The Block Volume allowance
+is 200 GB total across boot and block volumes in the tenancy home region.
+Oracle currently documents a 47 GB minimum boot volume; this profile selects
+50 GB. Recheck limits and the Always Free eligibility label in the OCI Console
+before creating any resource.
 
 ZERO's conservative starting profile is:
 
@@ -24,7 +26,7 @@ ZERO's conservative starting profile is:
 | OCPU | 1 (hard ceiling: 2) |
 | RAM | 6 GB (hard ceiling: 12 GB) |
 | Boot volume | 50 GB |
-| Total block storage | 200 GB maximum |
+| Total block storage | 200 GB maximum, including boot volume |
 | GPU | Disabled |
 | Paid fallback / trial-credit resources | Disabled |
 | Public application ingress | None |
@@ -38,15 +40,26 @@ not be described as capable of production photo/video rendering.
 
 ## Important Oracle constraints
 
-- Always Free compute must be created in the tenancy's home region.
+- Always Free compute and block volumes must be created in the tenancy's home
+  region. The home region is selected during account creation and cannot be
+  changed later.
 - An "out of host capacity" response means capacity is unavailable; wait or
   retry later. Do not upgrade the account or select a paid shape to bypass it.
-- OCI may reclaim idle Always Free compute under its published idle-instance
-  policy. Therefore this is not a guaranteed always-on production SLA.
-- Sign-up may request a card for identity verification. Do not upgrade to Pay
-  As You Go and do not provision trial-credit resources.
+- OCI may reclaim idle Always Free compute. The published idle policy evaluates
+  a 7-day period; an instance may be considered idle when CPU utilization at
+  the 95th percentile is below 20%, network utilization is below 20%, and (for
+  A1 shapes) memory utilization is below 20%. Therefore this is not a
+  guaranteed always-on production SLA. Do not run artificial workloads just
+  to defeat reclamation.
+- Oracle sign-up may require a credit/debit card for identity verification.
+  Oracle documents that a temporary authorization hold may appear and is
+  removed by the bank; Oracle says the card is not charged unless the account
+  is upgraded. If a temporary hold is unacceptable, do not proceed with signup.
+- Oracle permits one Free Tier account per person. Do not create duplicate
+  accounts.
+- Do not upgrade to Pay As You Go and do not provision trial-credit resources.
 - A resource is not safe merely because the account is called Free Tier. Check
-  the explicit **Always Free** eligibility label and the tenancy usage/limits
+  the explicit **Always Free** eligibility label and tenancy usage/limits
   before creating each resource.
 
 ## Manual gate before provisioning
@@ -54,11 +67,11 @@ not be described as capable of production photo/video rendering.
 1. Create or sign in to one Oracle Free Tier account using Oracle's official
    site. Choose the home region carefully; do not create a second account.
 2. Do not click **Upgrade**, **Pay As You Go**, or create resources marked
-   Trial/Paid.
+   Trial/Paid. Do not treat promotional trial credits as a zero-cost budget.
 3. In the OCI Console, inspect **Governance & Administration → Limits, Quotas
    and Usage** and confirm the A1 and Block Volume Always Free limits.
-4. Confirm that the A1 shape and boot volume are explicitly marked **Always
-   Free** in the resource creation flow.
+4. Confirm that the A1 shape, operating system image, and boot volume are
+   explicitly marked **Always Free** in the resource creation flow.
 5. Stop and ask for review if the console shows a price, paid status, trial
    credit consumption, an over-limit warning, or an uncertain eligibility
    label. Do not proceed on assumptions.
@@ -92,5 +105,6 @@ eligibility, estimate an invoice, or provision infrastructure.
 ## Official references
 
 - [OCI Always Free resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
-- [Oracle Cloud Free Tier](https://www.oracle.com/cloud/free/)
+- [Oracle Cloud Free Tier](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm)
 - [OCI Free Tier FAQ](https://www.oracle.com/apac/cloud/free/faq/)
+- [Oracle Free Tier sign-up](https://docs.oracle.com/en-us/iaas/Content/GSG/Tasks/signingup_topic-Sign_Up_for_Free_Oracle_Cloud_Promotion.htm)
