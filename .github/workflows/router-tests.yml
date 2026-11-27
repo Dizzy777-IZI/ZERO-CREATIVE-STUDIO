@@ -28,3 +28,9 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m unittest discover -s tests -v
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run browser photo editor safety tests
+        run: node --test tests/photo-editor-page.test.mjs
