@@ -6,11 +6,11 @@
 const STATUS = Object.freeze({
   project: "ZERO Creative Studio",
   mode: "rp0",
-  deployment: "starter-not-deployed",
+  service: "read-only-control-api",
   cloud_inference_enabled: false,
   private_inference_enabled: false,
   media_upload_enabled: false,
-  note: "Control-plane scaffold only; no inference worker is connected."
+  note: "Control-plane API only; no inference worker is connected."
 });
 
 function json(body, status = 200) {
