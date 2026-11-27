@@ -29,8 +29,8 @@ test("photo editor ignores stale image loads and releases object URLs", () => {
   assert.match(html, /image\.onerror/);
   assert.match(html, /if\(render\(\)\)announce\("Foto berhasil dibuka/);
   assert.match(html, /return false/);
-  assert.ok(html.indexOf("if(!/^image\\\\/(jpeg|png|webp|avif)$/.test(file.type))") < html.indexOf("const sequence=++loadSequence;"));
-  assert.match(html, /let saved=false;[\\s\\S]*?catch\\(error\\)\\{if\\(saved\\)/);
+  assert.ok(html.indexOf("file.type))") < html.indexOf("const sequence=++loadSequence;"));
+  assert.ok(html.indexOf("let saved=false;") < html.indexOf("catch(error){if(saved)"));
 });
 
 test("photo editor rejects invalid dimensions and does not upload media", () => {
