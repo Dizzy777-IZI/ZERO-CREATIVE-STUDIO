@@ -1,4 +1,5 @@
-name = "zero-control-api"
+name = "zero-creative-studio"
 main = "src/cloudflare/worker.js"
 compatibility_date = "2026-11-27"
 workers_dev = true
+previews = { }
