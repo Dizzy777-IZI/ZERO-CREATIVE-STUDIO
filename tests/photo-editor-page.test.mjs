@@ -6,21 +6,30 @@ const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta
 
 test("photo editor exposes local image input and supported formats", () => {
   assert.match(html, /type="file" accept="image\/jpeg,image\/png,image\/webp,image\/avif"/);
-  assert.match(html, /MAX_BYTES = 30 \* 1024 \* 1024/);
-  assert.match(html, /MAX_PIXELS = 40_000_000/);
+  assert.match(html, /MAX_BYTES=30\*1024\*1024/);
+  assert.match(html, /MAX_PIXELS=40_000_000/);
   assert.match(html, /URL\.createObjectURL\(file\)/);
 });
 
-test("photo editor includes non-destructive basic adjustments and export", () => {
+test("photo editor includes non-destructive adjustments and guarded PNG export", () => {
   for (const control of ["brightness", "contrast", "saturation", "rotate", "reset", "download"]) {
     assert.match(html, new RegExp('id="' + control + '"'));
   }
-  assert.match(html, /filterName = name === "saturation" \? "saturate" : name/);
   assert.match(html, /canvas\.toBlob/);
-  assert.match(html, /link\.download = "zero-edit-/);
+  assert.match(html, /if\(!blob\|\|!blob\.size\)/);
+  assert.match(html, /setTimeout\(\(\)=>URL\.revokeObjectURL\(url\),1500\)/);
 });
 
-test("photo editor does not upload media or call external APIs", () => {
+test("photo editor ignores stale image loads and releases object URLs", () => {
+  assert.match(html, /let sourceImage=null,sourceUrl=null,rotation=0,loadSequence=0/);
+  assert.match(html, /sequence!==loadSequence\|\|sourceUrl!==url/);
+  assert.match(html, /function releaseSource\(\)/);
+  assert.match(html, /URL\.revokeObjectURL\(sourceUrl\)/);
+  assert.match(html, /image\.onerror/);
+});
+
+test("photo editor rejects invalid dimensions and does not upload media", () => {
+  assert.match(html, /naturalWidth\*image\.naturalHeight>MAX_PIXELS/);
   assert.doesNotMatch(html, /fetch\s*\(/);
   assert.doesNotMatch(html, /XMLHttpRequest/);
   assert.doesNotMatch(html, /https?:\/\//);
