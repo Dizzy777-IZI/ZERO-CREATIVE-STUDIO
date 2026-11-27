@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Editor foto lokal ZERO Creative Studio. Foto diproses di browser dan tidak diunggah.">
+  <title>Editor Foto — ZERO Creative Studio</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#eef2ff;background:#0b1020;color-scheme:dark}
+    *{box-sizing:border-box}body{margin:0;padding:20px;min-height:100vh}
+    main{max-width:1100px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+    a{color:#a8c7ff}.eyebrow{color:#93a4c7;letter-spacing:.14em;font-size:.72rem;font-weight:700}
+    h1{margin:.35rem 0;font-size:clamp(1.8rem,5vw,2.7rem)}p{color:#b8c4dc;line-height:1.55}
+    .privacy{border:1px solid #28634c;background:#10291f;color:#a7f3d0;border-radius:12px;padding:12px 14px;margin:18px 0}
+    .layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:16px}
+    .panel{background:#111a2d;border:1px solid #28334d;border-radius:16px;padding:16px;min-width:0}
+    .stage{min-height:360px;display:grid;place-items:center;background:#080d18;border:1px dashed #3a4968;border-radius:12px;overflow:hidden}
+    canvas{display:block;max-width:100%;max-height:70vh;object-fit:contain}
+    .empty{text-align:center;padding:28px;color:#93a4c7}
+    label{display:block;font-size:.9rem;color:#d6def0;margin:16px 0 7px}
+    input[type=file]{width:100%;padding:10px;border:1px solid #394968;border-radius:10px;background:#0b1425}
+    input[type=range]{width:100%;accent-color:#91b8ff}
+    .value{float:right;color:#a8c7ff;font-variant-numeric:tabular-nums}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+    button{border:1px solid #405273;border-radius:10px;background:#1b2942;color:#eef2ff;padding:10px 13px;font-weight:650;cursor:pointer}
+    button.primary{background:#dbeafe;color:#10213b;border-color:#dbeafe}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .hint{font-size:.82rem;color:#93a4c7}.status{min-height:1.4em;color:#a7f3d0;font-size:.88rem}
+    @media(max-width:760px){body{padding:12px}.layout{grid-template-columns:1fr}.stage{min-height:260px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div><div class="eyebrow">ZERO / CREATIVE STUDIO</div><h1>Editor Foto</h1><p>Alat koreksi foto dasar — versi awal.</p></div>
+    <a href="./index.html">Kembali ke dashboard</a>
+  </header>
+  <div class="privacy"><strong>Privasi:</strong> foto dibuka dan diproses langsung di browser perangkat ini. File tidak dikirim ke server ZERO atau layanan AI.</div>
+  <div class="layout">
+    <section class="panel" aria-label="Pratinjau foto">
+      <div class="stage" id="stage"><div class="empty" id="empty">Pilih foto untuk mulai mengedit.</div><canvas id="preview" hidden></canvas></div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </section>
+    <aside class="panel">
+      <label for="photo">Pilih foto</label>
+      <input id="photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif">
+      <p class="hint">Format: JPEG, PNG, WebP, AVIF jika didukung browser. Batas awal 30 MB.</p>
+      <div id="controls" hidden>
+        <label for="brightness">Brightness <span class="value" id="brightnessValue">100%</span></label>
+        <input id="brightness" type="range" min="0" max="200" value="100">
+        <label for="contrast">Contrast <span class="value" id="contrastValue">100%</span></label>
+        <input id="contrast" type="range" min="0" max="200" value="100">
+        <label for="saturation">Saturation <span class="value" id="saturationValue">100%</span></label>
+        <input id="saturation" type="range" min="0" max="200" value="100">
+        <div class="actions">
+          <button id="rotate" type="button">Putar 90°</button>
+          <button id="reset" type="button">Reset</button>
+          <button id="download" class="primary" type="button">Ekspor PNG</button>
+        </div>
+        <p class="hint">Ekspor menghasilkan salinan PNG. File asli tidak diubah.</p>
+      </div>
+    </aside>
+  </div>
+  <p class="hint">Batas versi awal: belum ada retouch AI, penghapusan objek, layer, crop, atau editing video. Jangan tutup halaman sebelum ekspor selesai.</p>
+</main>
+<script>
+(() => {
+  "use strict";
+  const MAX_BYTES = 30 * 1024 * 1024;
+  const fileInput = document.getElementById("photo");
+  const canvas = document.getElementById("preview");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const empty = document.getElementById("empty");
+  const controls = document.getElementById("controls");
+  const status = document.getElementById("status");
+  const sliders = ["brightness", "contrast", "saturation"];
+  let sourceImage = null;
+  let sourceUrl = null;
+  let rotation = 0;
+
+  function announce(message) { status.textContent = message; }
+  function render() {
+    if (!sourceImage) return;
+    const rotated = Math.abs(rotation % 180) === 90;
+    const width = sourceImage.naturalWidth;
+    const height = sourceImage.naturalHeight;
+    canvas.width = rotated ? height : width;
+    canvas.height = rotated ? width : height;
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.filter = sliders.map(name => name === "brightness"
+      ? "brightness(" + document.getElementById(name).value + "%)"
+      : name + "(" + document.getElementById(name).value + "%)").join(" ");
+    ctx.drawImage(sourceImage, -width / 2, -height / 2, width, height);
+    ctx.restore();
+    sliders.forEach(name => {
+      document.getElementById(name + "Value").textContent = document.getElementById(name).value + "%";
+    });
+  }
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
+      announce("Format tidak didukung. Pilih JPEG, PNG, WebP, atau AVIF.");
+      fileInput.value = "";
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      announce("File melebihi batas 30 MB untuk versi awal.");
+      fileInput.value = "";
+      return;
+    }
+    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+    sourceUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      sourceImage = image;
+      rotation = 0;
+      sliders.forEach(name => { document.getElementById(name).value = 100; });
+      canvas.hidden = false;
+      empty.hidden = true;
+      controls.hidden = false;
+      render();
+      announce("Foto berhasil dibuka secara lokal. Tidak ada upload ke server.");
+    };
+    image.onerror = () => announce("Foto tidak dapat dibaca oleh browser.");
+    image.src = sourceUrl;
+  });
+
+  sliders.forEach(name => document.getElementById(name).addEventListener("input", render));
+  document.getElementById("rotate").addEventListener("click", () => { rotation = (rotation + 90) % 360; render(); });
+  document.getElementById("reset").addEventListener("click", () => {
+    sliders.forEach(name => { document.getElementById(name).value = 100; });
+    rotation = 0;
+    render();
+    announce("Pengaturan dikembalikan ke nilai awal.");
+  });
+  document.getElementById("download").addEventListener("click", () => {
+    if (!sourceImage) return;
+    canvas.toBlob(blob => {
+      if (!blob) { announce("Ekspor gagal. Coba browser lain atau foto yang lebih kecil."); return; }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "zero-edit-" + Date.now() + ".png";
+      link.click();
+      URL.revokeObjectURL(url);
+      announce("Ekspor PNG dimulai.");
+    }, "image/png");
+  });
+  window.addEventListener("beforeunload", () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); });
+})();
+</script>
+</body>
+</html>
