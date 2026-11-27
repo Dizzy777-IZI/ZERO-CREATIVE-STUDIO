@@ -1,0 +1,76 @@
+version: 1
+project: ZERO Creative Studio
+
+# "local" means private inference on a separately managed worker,
+# not execution on the owner's personal computer.
+routing:
+  default_mode: privacy_first
+  allow_cloud_upload_by_default: false
+  silent_cloud_fallback: false
+  preserve_originals: true
+  require_job_manifest: true
+
+engines:
+  private_local:
+    enabled: true
+    deployment_status: planned
+    execution_location: owner_controlled_worker
+    outbound_network_during_inference: disabled_when_feasible
+    accepted_data_classifications:
+      - public
+      - private
+      - sensitive
+    requires:
+      - authenticated_gateway
+      - model_license_review
+      - runtime_compatibility_check
+      - capacity_check
+      - retention_policy
+
+  cloud:
+    enabled: false
+    deployment_status: not_configured
+    execution_location: approved_provider
+    accepted_data_classifications:
+      - public
+    requires_per_job_consent: true
+    requires:
+      - provider_review
+      - model_and_api_version
+      - pricing_review
+      - privacy_and_retention_review
+      - commercial_rights_review
+      - secret_manager
+
+operations:
+  image_generation:
+    preferred_engine: cloud
+    fallback_engine: private_local
+    cloud_requires_consent: true
+  generative_inpainting:
+    preferred_engine: private_local
+    fallback_engine: cloud
+    cloud_requires_consent: true
+  background_segmentation:
+    preferred_engine: private_local
+  image_upscaling:
+    preferred_engine: private_local
+  denoise_and_restore:
+    preferred_engine: private_local
+  color_adjustment:
+    preferred_engine: private_local
+  video_transcoding:
+    preferred_engine: private_local
+  video_timeline_editing:
+    preferred_engine: private_local
+  ai_video_generation:
+    preferred_engine: cloud
+    fallback_engine: private_local
+    cloud_requires_consent: true
+
+failure_policy:
+  private_worker_unavailable: fail_or_queue
+  cloud_consent_missing: do_not_upload
+  engine_capability_missing: return_explicit_unsupported_error
+  resource_limit_exceeded: queue_or_reject
+  retry_policy: bounded
