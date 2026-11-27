@@ -5,7 +5,7 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 | Phase | Deliverable | Exit criteria | Status |
 |---|---|---|---|
 | A | Dual-engine architecture and privacy policy | Privacy, fallback, and deployment semantics documented | Complete |
-| B | Routing core, job schema, and config integration | Deterministic router, validated job schema, config-driven capabilities, and unit tests | Implementation added; CI validation pending |
+| B | Routing core, job schema, and config integration | Deterministic router, validated job schema, config-driven capabilities, and unit tests | Complete — merged to main; CI passed on Python 3.11 and 3.12 |
 | C | Private inference worker | Server selected, model licenses checked, health and offline-inference tests pass | Blocked — Rp0/month; no separate worker |
 | D | Cloud adapter | Provider/API verified, consent gate and cost controls tested | Blocked — no approved provider or API budget |
 | E | Orchestration | Queue, progress, cancellation, previews, and exports tested end-to-end | Planned |
@@ -18,13 +18,13 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 - YAML routing-policy loader with strict privacy defaults.
 - Runtime capabilities are derived from configured operations and engine enablement.
 - Tests cover malformed manifests, invalid config, cloud-consent defaults, and disabled engines.
-- GitHub Actions must pass on Python 3.11 and 3.12 before this phase is marked verified.
+- Expanded suite passed in GitHub Actions on Python 3.11 and 3.12 (15 tests total).
 
 ## Rp0/month operating mode
 
 - No paid GPU server, hosted inference API, or cloud media upload is enabled.
 - Both engines are disabled in `ai-workflows/engine-routing.yaml`.
-- Development uses local unit tests and CI only; it does not require downloading models or installing AI runtimes.
+- Development uses repository code, unit tests, and GitHub Actions; no model downloads or local AI runtime are required.
 - A job requiring inference must be reported as unavailable until an engine is provisioned. It must never be silently redirected to another engine.
 
 ## Constraints to resolve before Phase C
