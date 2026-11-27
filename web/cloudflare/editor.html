@@ -91,9 +91,10 @@
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(rotation * Math.PI / 180);
-    ctx.filter = sliders.map(name => name === "brightness"
-      ? "brightness(" + document.getElementById(name).value + "%)"
-      : name + "(" + document.getElementById(name).value + "%)").join(" ");
+    ctx.filter = sliders.map(name => {
+      const filterName = name === "saturation" ? "saturate" : name;
+      return filterName + "(" + document.getElementById(name).value + "%)";
+    }).join(" ");
     ctx.drawImage(sourceImage, -width / 2, -height / 2, width, height);
     ctx.restore();
     sliders.forEach(name => {
