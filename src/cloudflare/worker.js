@@ -1,10 +1,12 @@
 /**
- * ZERO Cloudflare control-plane starter.
+ * ZERO Cloudflare read-only control-plane Worker.
  * Public endpoints expose only non-sensitive runtime capability status.
  * No media upload, inference, queue, storage, or paid-service binding exists.
  */
+const SERVICE = "zero-creative-studio";
 const STATUS = Object.freeze({
   project: "ZERO Creative Studio",
+  service: SERVICE,
   mode: "rp0",
   deployment: "starter-not-deployed",
   cloud_inference_enabled: false,
@@ -31,7 +33,7 @@ export default {
       return json({ error: "method_not_allowed" }, 405);
     }
     if (url.pathname === "/healthz") {
-      return json({ status: "ok", service: "zero-control-api" });
+      return json({ status: "ok", service: SERVICE });
     }
     if (url.pathname === "/api/status") {
       return json(STATUS);
