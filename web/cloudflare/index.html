@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="ZERO Creative Studio control-plane preview">
+  <meta name="description" content="ZERO Creative Studio control-plane dashboard">
   <title>ZERO Creative Studio</title>
   <style>
     :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#eef2ff;background:#0b1020}
@@ -20,16 +20,16 @@
   <main>
     <div class="eyebrow">CREATIVE SYSTEM / CONTROL PLANE</div>
     <h1>ZERO</h1>
-    <p>Fondasi dashboard ZERO Creative Studio. Ini adalah preview statis; belum terhubung ke akun Cloudflare atau API produksi.</p>
+    <p>Dashboard statis ZERO Creative Studio. Status deployment dashboard dan API harus diverifikasi melalui URL produksi masing-masing; halaman ini tidak mengasumsikan keduanya sudah aktif.</p>
     <span class="status">MODE Rp0 · INFERENCE NONAKTIF</span>
     <h2>Kapabilitas saat ini</h2>
     <ul>
-      <li>Dashboard statis: disiapkan untuk Cloudflare Pages.</li>
-      <li>API status: starter Worker tersedia, belum di-deploy.</li>
+      <li>Dashboard: halaman statis untuk Cloudflare Pages.</li>
+      <li>Control API: read-only endpoints <code>/healthz</code> dan <code>/api/status</code>.</li>
       <li>Cloud AI dan private inference: nonaktif.</li>
       <li>Upload media: nonaktif; tidak ada fallback otomatis.</li>
     </ul>
-    <p class="foot">ZERO · Privacy-first development · Deployment requires owner-controlled Cloudflare account setup.</p>
+    <p class="foot">ZERO · Privacy-first development · Tidak ada layanan inference atau media processing yang diaktifkan.</p>
   </main>
 </body>
 </html>

@@ -8,7 +8,7 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 | B | Routing core, job schema, and config integration | Deterministic router, validated job schema, config-driven capabilities, and unit tests | Complete — merged to main; CI passed on Python 3.11 and 3.12 |
 | C1 | Oracle Always Free preparation | OCI profile, strict zero-cost guardrails, and documentation validated | Complete — PR #4 merged; CI passed; no OCI resources created |
 | C2 | Private inference worker | Server selected, model licenses checked, health and offline-inference tests pass | Blocked — no separate inference worker or GPU budget |
-| C3 | Cloudflare free control plane | Static dashboard and read-only status Worker pass validation; owner deploys under Free plan | In preparation — scaffold in review; no account or deployment exists |
+| C3 | Cloudflare free control plane | Static dashboard and read-only status Worker pass validation; owner deploys under Free plan | Worker deployment reported by owner; endpoint verification pending; Pages status unconfirmed |
 | D | Cloud adapter | Provider/API verified, consent gate and cost controls tested | Blocked — no approved provider or API budget |
 | E | Orchestration | Queue, progress, cancellation, previews, and exports tested end-to-end | Planned |
 | F | Production hardening | Auth, quotas, retention, monitoring, backup, security and recovery tests pass | Planned |
@@ -30,14 +30,14 @@ This roadmap tracks implementation gates, not promises or assumed completion.
 - PR #4 merged after Python 3.11 and 3.12 CI checks passed. PR #5 merged with additional operational caveats; CI passed.
 - No OCI account, VM, network, storage, or paid service has been created.
 
-## Cloudflare free control-plane preparation
+## Cloudflare free control-plane
 
-- `web/cloudflare/index.html` is a static dashboard preview.
+- `web/cloudflare/index.html` is a static dashboard intended for Cloudflare Pages.
 - `src/cloudflare/worker.js` exposes only read-only `GET /healthz` and `GET /api/status` endpoints.
 - `wrangler.toml` contains no bindings, secrets, storage, custom domains, or routes.
-- `docs/CLOUDFLARE-FREE-PREP.md` defines the manual Free-plan deployment gate and cost guardrails.
+- The owner reports deploying the Worker on 2026-11-27. The production URL and live endpoint responses still need verification.
+- Pages deployment is not confirmed.
 - This is not a VPS, Linux shell, persistent worker, GPU host, or inference runtime.
-- No Cloudflare account, project, Worker, Pages deployment, or billing configuration has been created.
 
 ## Rp0/month operating mode
 

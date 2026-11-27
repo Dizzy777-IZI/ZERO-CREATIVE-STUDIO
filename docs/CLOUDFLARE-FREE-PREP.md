@@ -1,70 +1,77 @@
-# Cloudflare Free — ZERO control-plane preparation
+# Cloudflare Free — ZERO control-plane
 
-## Decision
+## Architecture
 
-Cloudflare Pages + Workers is the temporary Rp0 hosting target for the lightweight
-dashboard and read-only control API. It is not a Linux VPS and is not an inference
-host. No Cloudflare account, project, Worker, Pages site, domain, or resource has
-been created by this repository change.
+- Worker service name: `zero-creative-studio` (must match `wrangler.toml`).
+- Worker entry point: `src/cloudflare/worker.js`.
+- Static dashboard source: `web/cloudflare/index.html`, intended for a separate Pages project.
+- Worker exposes only `GET /healthz` and `GET /api/status`; other methods and paths are rejected.
+- No inference, media upload, queue, storage, secrets, or paid-service bindings are configured.
 
-## Included scaffold
+Cloudflare Workers is not a Linux VPS or AI inference host. Pages and Workers are separate products and should be configured as separate projects.
 
-- `web/cloudflare/index.html`: static Indonesian dashboard preview.
-- `src/cloudflare/worker.js`: read-only `GET /healthz` and `GET /api/status`
-  endpoints. Other methods and paths are rejected.
-- `wrangler.toml`: minimal Workers configuration with no bindings, secrets,
-  routes, custom domains, storage, or paid features.
+## Required Workers Builds settings
 
-The public status response contains only non-sensitive capability flags. Do not
-add credentials, user media, personal data, job payloads, or private metadata to
-these endpoints.
+For the existing Worker connected to this GitHub repository, verify these values in the Cloudflare dashboard:
 
-## Free-tier guardrails
+| Setting | Required value |
+|---|---|
+| Repository | `Dizzy777-IZI/ZERO-CREATIVE-STUDIO` |
+| Production branch | `main` |
+| Root directory | `/` |
+| Build command | Leave empty |
+| Deploy command | `npm run deploy` |
+| Version command | Leave empty unless Cloudflare requires a supported default |
+| Wrangler config | `wrangler.toml` at repository root |
+| Worker name | `zero-creative-studio` |
 
-Cloudflare's current Workers Free documentation lists 100,000 requests/day,
-10 ms CPU time per invocation, and 128 MB memory. Pages Free currently lists
-500 builds/month and one concurrent build. Recheck official limits before use:
+Use `npm run deploy` as the only production Deploy command. The repository pins Wrangler in `devDependencies`, and this script invokes that local installation. Leave the Build command empty so Cloudflare does not run a second build step for this Worker. Temporarily turn Preview Builds OFF: the repository does not currently define a verified preview-deployment workflow. Do not use `wrangler preview`; it is not the project's deployment command. Re-enable Preview Builds only after a separate preview deployment command has been implemented and tested.
+
+For preview builds, enable Preview Builds only if the account exposes the feature without enabling a paid plan. Protect preview deployments with Cloudflare Access only when an Access application/policy is already configured and tested; otherwise leave protection disabled until it can be configured without a paid upgrade or locking out the owner.
+
+## Pages dashboard settings
+
+Configure Pages separately from the Worker:
+
+| Setting | Required value |
+|---|---|
+| Repository | `Dizzy777-IZI/ZERO-CREATIVE-STUDIO` |
+| Production branch | `main` |
+| Root directory | `web/cloudflare` |
+| Build command | Leave empty |
+| Build output directory | `.` |
+
+Do not point the Pages project at the Worker root or use `wrangler deploy` as the Pages build command.
+
+## Rp0 cost guardrails
+
+- Keep the account and Worker on the Free plan.
+- Do not enable Workers Paid, paid add-ons, paid storage, or usage-based services.
+- Do not add a payment method just to proceed.
+- If the console requires a payment method, shows a charge, or proposes an upgrade, stop.
+- Recheck current official limits and account billing state before enabling new features.
+
+Official references:
 - https://developers.cloudflare.com/workers/platform/limits/
 - https://developers.cloudflare.com/pages/platform/limits/
 - https://developers.cloudflare.com/workers/platform/pricing/
 
-The Workers Paid plan has a minimum monthly charge. Do not enable Paid, Workers
-Paid, paid add-ons, paid storage, or any usage-based service. Do not add a
-payment method just to proceed. If the console requires a payment method or
-shows a charge, stop and request review.
+## Smoke tests
 
-## Manual deployment gate
+1. `GET /healthz`: HTTP 200 and JSON `{"status":"ok","service":"zero-creative-studio"}`.
+2. `GET /api/status`: HTTP 200; cloud inference, private inference, and media upload flags must all be `false`.
+3. `POST /api/status`: HTTP 405.
+4. Unknown path: HTTP 404.
+5. Confirm Pages dashboard separately using its own production URL.
+6. Review account plan/billing; stop if any paid plan or charge appears.
 
-1. The owner creates/signs in to their Cloudflare account and confirms the
-   account is on the Free plan.
-2. Create a Pages project connected to this GitHub repository:
-   - Root directory: `web/cloudflare`
-   - Build command: none
-   - Build output directory: `.`
-3. Create a Worker from the repository using the root `wrangler.toml`, or
-   deploy with Wrangler after installing it on an owner-controlled environment.
-4. Do not add custom domains, storage bindings, queues, databases, secrets, or
-   paid products in this initial phase.
-5. Test `/healthz` and `/api/status`. Confirm the response keeps all inference
-   and media-upload flags false.
-6. Review the Cloudflare dashboard billing/plan page after setup. Stop if any
-   paid plan or charge is shown.
+Never paste API tokens, passwords, or account credentials into chat or GitHub.
 
-No deployment is performed by CI. Do not paste API tokens, passwords, or
-account credentials into chat or GitHub.
+## Privacy and runtime boundaries
 
-## Runtime boundaries
-
-- Suitable: static dashboard, lightweight read-only API, project health/status.
-- Not suitable: Linux shell/daemon, long-running jobs, GPU workloads, AI model
-  inference, video rendering, or persistent local filesystem processing.
-- AI inference remains unavailable until a separate private worker is
-  provisioned or a cloud provider is explicitly approved.
+- Public status endpoints must never expose credentials, personal data, user media, job payloads, or private metadata.
 - No automatic media upload or cloud fallback is permitted.
+- Private/sensitive media must never be routed to cloud.
 - The user's personal PC is not a worker.
-
-## Validation
-
-The Worker is deliberately small and has no external dependencies. Before
-deployment, validate JavaScript syntax and manually smoke-test both endpoints.
-A successful GitHub CI run does not prove that a Cloudflare deployment exists.
+- AI inference and media processing remain unavailable until a separate approved engine is actually provisioned and tested.
+- GitHub CI success does not prove Cloudflare deployment success; a live URL and successful endpoint checks are required.
