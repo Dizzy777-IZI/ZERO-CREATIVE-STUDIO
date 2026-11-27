@@ -83,7 +83,7 @@ Validate the prepared profile:
 
 ```bash
 python -m pip install -e .
-PYTHONPATH=src python -m unittest tests.test_oracle_profile -v
+PYTHONPATH=src python -m unittest discover -s tests -p 'test_oracle_profile.py' -v
 ```
 
 The validator checks the repository policy file only. It does not prove OCI
