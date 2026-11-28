@@ -4,6 +4,8 @@
 
 The Background panel can run **Detect person locally**. It uses the MediaPipe Image Segmenter task with Google's Selfie Segmenter model to produce an initial person/background confidence mask. The result is placed underneath the existing manual brush layer, so Add, Erase, Restore, Invert, Edge Feather, Undo, Redo, and transparent export continue to work.
 
+The Selfie Segmenter output has two confidence classes: **background (index 0)** and **person (index 1)**. ZERO explicitly selects the person confidence map as the editable foreground mask; it does not mistake the background class for the subject.
+
 This v1 model is specifically trained for people and portrait-style images. It is not a general object-removal model and should not be presented as detecting pets, vehicles, products, furniture, or arbitrary foreground objects.
 
 ## Privacy and network boundary
