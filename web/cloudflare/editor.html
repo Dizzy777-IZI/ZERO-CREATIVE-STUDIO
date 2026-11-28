@@ -253,6 +253,10 @@ function applyState(s){
  $("fade").value=lookIntensity;
  syncDimensionFields();updateLabels();scheduleRender();
 }
+function announce(message){
+ const status=$("status");
+ if(status)status.textContent=String(message||"");
+}
 function toast(message){
  const t=$("toast");t.textContent=message;t.classList.add("show");
  clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400);
