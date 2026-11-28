@@ -297,7 +297,7 @@ function resizeMaskCanvasForCurrentGeometry(){
 }
 function initializeMaskCanvas(){
  resizeMaskCanvasForCurrentGeometry();
- maskStrokes=[];maskApplied=false;maskInverted=false;maskRevision=0;maskPointer=null;$("maskFeather").value=0;$("maskFeatherValue").textContent="0 px";
+ maskStrokes=[];maskApplied=false;maskInverted=false;aiMaskData=null;maskRevision=0;maskPointer=null;$("maskFeather").value=0;$("maskFeatherValue").textContent="0 px";$("aiThreshold").value=45;$("aiThresholdValue").textContent="45%";
  updateMaskActions();
 }
 function paintMaskSegment(context,stroke,from,to){
@@ -307,10 +307,26 @@ function paintMaskSegment(context,stroke,from,to){
  if(from.x===to.x&&from.y===to.y){context.beginPath();context.arc(from.x,from.y,stroke.radius,0,Math.PI*2);context.fill();}
  context.restore();
 }
+function confidenceToAlpha(value,threshold){
+ const probability=Math.max(0,Math.min(1,value/255)),center=Math.max(0.1,Math.min(0.9,threshold/100));
+ const low=Math.max(0,center-0.18),high=Math.min(1,center+0.18);
+ const t=clamp01((probability-low)/Math.max(0.001,high-low));
+ return Math.round(t*t*(3-2*t)*255);
+}
+function drawAIMaskBase(context){
+ if(!aiMaskData||!aiMaskData.data||!aiMaskData.width||!aiMaskData.height)return;
+ const source=document.createElement("canvas");source.width=aiMaskData.width;source.height=aiMaskData.height;
+ const sourceContext=source.getContext("2d");if(!sourceContext)return;
+ const pixels=new Uint8ClampedArray(aiMaskData.width*aiMaskData.height*4),threshold=+$("aiThreshold").value;
+ for(let i=0;i<aiMaskData.data.length;i++){const offset=i*4;pixels[offset]=255;pixels[offset+1]=255;pixels[offset+2]=255;pixels[offset+3]=confidenceToAlpha(aiMaskData.data[i],threshold);}
+ sourceContext.putImageData(new ImageData(pixels,aiMaskData.width,aiMaskData.height),0,0);
+ context.drawImage(source,0,0,maskCanvas.width,maskCanvas.height);
+}
 function redrawMaskStrokes(){
  if(!maskCanvas)return;
  const context=maskCanvas.getContext("2d");if(!context)return;
  context.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+ drawAIMaskBase(context);
  for(const stroke of maskStrokes){
   if(!stroke.points||!stroke.points.length)continue;
   let previous=stroke.points[0];paintMaskSegment(context,stroke,previous,previous);
@@ -321,19 +337,23 @@ function redrawMaskStrokes(){
 function updateMaskActions(){
  const apply=$("applyMask"),restore=$("restoreMask"),clear=$("clearMask"),invert=$("invertMask");
  if(!apply||!restore||!clear||!invert)return;
- const hasSelection=maskStrokes.length>0;
+ const hasSelection=hasMaskSelection();
  apply.disabled=!previewImage||!hasSelection||maskApplied;restore.disabled=!previewImage||!maskApplied;clear.disabled=!previewImage||!hasSelection;invert.disabled=!previewImage||!hasSelection;
+ $("aiSegment").disabled=!previewImage||aiSegmentationBusy;
+ $("aiSegment").textContent=aiSegmentationBusy?"Detecting locally…":"Detect person locally";
+ $("aiThreshold").disabled=!aiMaskData;
+ $("aiThresholdValue").textContent=$("aiThreshold").value+"%";
  invert.textContent=maskInverted?"Return to painted selection":"Invert selection";
  $("maskFeatherValue").textContent=$("maskFeather").value+" px";
  apply.textContent=maskApplied?"Background removed":"Remove background";
  $("maskStatus").textContent=!hasSelection
-  ?"No selection yet. Choose Add / protect and paint the subject on the canvas. Use Erase to trim it and Restore to paint it back."
+  ?"No selection yet. Run local person detection or choose Add / protect and paint the subject on the canvas."
   :maskApplied
    ?"Background masked. Use Restore subject to recover missed parts or Erase selection to remove more. Export as PNG/WebP to preserve transparency."
    :"Selection ready. Keep painting, refine with Erase/Restore, or remove the background when ready.";
 }
 function renderEffectiveMask(w,h){
- if(!maskCanvas||!maskStrokes.length)return null;
+ if(!maskCanvas||!hasMaskSelection())return null;
  if(!maskEffectiveCanvas)maskEffectiveCanvas=document.createElement("canvas");
  if(maskEffectiveCanvas.width!==w||maskEffectiveCanvas.height!==h){maskEffectiveCanvas.width=w;maskEffectiveCanvas.height=h;}
  const effective=maskEffectiveCanvas.getContext("2d");if(!effective)return null;
@@ -362,8 +382,8 @@ function drawMaskOverlay(target,w,h,effectiveMask){
 }
 function geometrySignature(){return JSON.stringify({rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,sourceWidth,sourceHeight});}
 function clearMaskForGeometryChange(){
- const hadSelection=maskStrokes.length>0;
- if(hadSelection){maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;}
+ const hadSelection=hasMaskSelection();
+ if(hadSelection){maskStrokes=[];aiMaskData=null;maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;}
  resizeMaskCanvasForCurrentGeometry();
  if(hadSelection){redrawMaskStrokes();announce("Framing changed. The background mask was cleared; paint the subject again.");}
 }
@@ -393,7 +413,7 @@ function drawTo(target,original=false,background=null,source=previewImage,source
  }
  drawSharpen(c,w,h,original);
  drawVignette(c,w,h,original);
- if(!original&&maskStrokes.length){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(c,w,h,effectiveMask);}
+ if(!original&&hasMaskSelection()){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(c,w,h,effectiveMask);}
  if(background){c.save();c.globalCompositeOperation="destination-over";c.fillStyle=background;c.fillRect(0,0,w,h);c.restore();}
  return size;
 }
@@ -421,7 +441,7 @@ function render(original=false,interactive=false){
   }
   drawSharpen(ctx,w,h,original);
   drawVignette(ctx,w,h,original);
-  if(!original&&maskStrokes.length){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(ctx,w,h,effectiveMask);drawMaskOverlay(ctx,w,h,effectiveMask);}
+  if(!original&&hasMaskSelection()){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(ctx,w,h,effectiveMask);drawMaskOverlay(ctx,w,h,effectiveMask);}
   if(!interactive){
    $("dimensions").textContent=size.w+" × "+size.h+" px";
    $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
