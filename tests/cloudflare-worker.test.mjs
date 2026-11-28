@@ -55,6 +55,24 @@ test("static dashboard and photo editor requests are served by the asset binding
   assert.equal(await editor.text(), "static:/editor.html");
 });
 
+test("Worker-generated JSON responses carry restrictive security headers", async () => {
+  const endpoints = [
+    new Request("https://zero.test/healthz"),
+    new Request("https://zero.test/api/status"),
+    new Request("https://zero.test/missing")
+  ];
+  for (const request of endpoints) {
+    const response = await worker.fetch(request, { ASSETS: assets });
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(response.headers.get("x-frame-options"), "DENY");
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(response.headers.get("permissions-policy"), "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    assert.equal(response.headers.get("content-security-policy"), "default-src 'none'; frame-ancestors 'none'");
+    assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+    assert.equal(response.headers.get("cross-origin-resource-policy"), "same-origin");
+  }
+});
+
 test("non-GET/HEAD requests are rejected and unknown routes return JSON 404", async () => {
   const methodResponse = await worker.fetch(new Request("https://zero.test/healthz", { method: "POST" }), { ASSETS: assets });
   assert.equal(methodResponse.status, 405);
