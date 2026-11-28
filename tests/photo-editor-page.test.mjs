@@ -98,6 +98,20 @@ test("undo and redo synchronize selected Look and Crop controls with restored st
   assert.deepEqual(crops.map((x) => x.selected), [false, false, true]);
 });
 
+test("browser self-test mode covers local load, adjustments, transforms, history, crop and PNG export", () => {
+  assert.match(script, /function runEditorSelfTest\(\)/);
+  for (const check of [
+    "Synthetic PNG created", "Local image loaded", "Preview visible and contains pixels",
+    "Brightness render keeps preview visible", "Contrast render keeps preview visible",
+    "Look preset render keeps preview visible", "Rotate keeps preview visible",
+    "Flip keeps preview visible", "Undo restores transform state",
+    "Redo reapplies transform state", "Crop ratio applies and remains selected",
+    "Undo restores crop selection", "Redo restores crop selection",
+    "PNG export produces a non-empty image"
+  ]) assert.ok(script.includes(check), "missing self-test check: " + check);
+  assert.match(script, /new URLSearchParams\(location\.search\)\.get\("selftest"\)==="1"/);
+});
+
 test("inline photo editor script parses without syntax errors", () => {
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
