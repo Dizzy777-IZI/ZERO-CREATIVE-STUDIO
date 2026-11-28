@@ -112,8 +112,10 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
   <h2 class="panel-heading">Background mask</h2><p class="panel-desc">Paint over the subject to protect it. Erase unwanted mask areas, restore missed parts, then remove the unselected background. Brush edits stay local.</p>
   <div class="control"><div class="control-head"><label for="maskMode">Brush mode</label></div><select id="maskMode"><option value="add">Add / protect</option><option value="erase">Erase selection</option><option value="restore">Restore subject</option></select></div>
   <div class="control"><div class="control-head"><label for="brushSize">Brush size</label><output class="val" id="brushSizeValue">64 px</output></div><input id="brushSize" type="range" min="8" max="180" step="2" value="64"></div>
+  <div class="control"><div class="control-head"><label for="maskFeather">Edge feather</label><output class="val" id="maskFeatherValue">0 px</output></div><input id="maskFeather" type="range" min="0" max="32" step="1" value="0"></div>
   <label class="checkrow"><input type="checkbox" id="maskOverlay" checked> Show green selection overlay</label>
-  <div class="divider"></div><div class="action-grid"><button class="btn primary" id="applyMask" disabled>Remove background</button><button class="btn" id="restoreMask" disabled>Restore background</button></div>
+  <div class="divider"></div><button class="btn" id="invertMask" style="width:100%;margin-bottom:8px" disabled>Invert selection</button>
+  <div class="action-grid"><button class="btn primary" id="applyMask" disabled>Remove background</button><button class="btn" id="restoreMask" disabled>Restore background</button></div>
   <button class="btn" id="clearMask" style="width:100%;margin-top:8px" disabled>Clear selection</button>
   <div class="divider"></div><p class="hint" id="maskStatus">No selection yet. Choose Add / protect and paint the subject on the canvas.</p>
   <p class="hint">Manual masking, not AI segmentation. Finish crop, rotate, flip and resize before painting. Changing framing clears the mask to prevent misalignment. PNG and WebP preserve transparency; JPEG uses a white background.</p>
@@ -149,10 +151,10 @@ let cropRatio=null,cropPanX=0.5,cropPanY=0.5,outW=0,outH=0,history=[],historyInd
 let cropDrag=null;
 let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
 let loadSequence=0,lastDimensionEdited="width",exporting=false,savedStateSignature=null;
-let maskCanvas=null,maskOverlayCanvas=null,maskStrokes=[],maskApplied=false,maskRevision=0,maskPointer=null,lastGeometrySignature=null;
+let maskCanvas=null,maskOverlayCanvas=null,maskEffectiveCanvas=null,maskStrokes=[],maskApplied=false,maskInverted=false,maskRevision=0,maskPointer=null,lastGeometrySignature=null;
 const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000;
 function state(){
- return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskRevision};
+ return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskInverted,maskFeather:+$("maskFeather").value,maskRevision};
 }
 function currentStateSignature(){const snapshot=state();delete snapshot.maskStrokes;return JSON.stringify(snapshot);}
 function hasUnsavedChanges(){return !!previewImage&&savedStateSignature!==null&&currentStateSignature()!==savedStateSignature;}
@@ -288,7 +290,7 @@ function maskDimensions(){
 function initializeMaskCanvas(){
  const size=maskDimensions();
  maskCanvas=document.createElement("canvas");maskCanvas.width=size.w;maskCanvas.height=size.h;
- maskOverlayCanvas=document.createElement("canvas");maskStrokes=[];maskApplied=false;maskRevision=0;maskPointer=null;
+ maskOverlayCanvas=document.createElement("canvas");maskEffectiveCanvas=document.createElement("canvas");maskStrokes=[];maskApplied=false;maskInverted=false;maskRevision=0;maskPointer=null;$("maskFeather").value=0;$("maskFeatherValue").textContent="0 px";
  updateMaskActions();
 }
 function paintMaskSegment(context,stroke,from,to){
@@ -310,10 +312,12 @@ function redrawMaskStrokes(){
  updateMaskActions();
 }
 function updateMaskActions(){
- const apply=$("applyMask"),restore=$("restoreMask"),clear=$("clearMask");
- if(!apply||!restore||!clear)return;
+ const apply=$("applyMask"),restore=$("restoreMask"),clear=$("clearMask"),invert=$("invertMask");
+ if(!apply||!restore||!clear||!invert)return;
  const hasSelection=maskStrokes.length>0;
- apply.disabled=!previewImage||!hasSelection||maskApplied;restore.disabled=!previewImage||!maskApplied;clear.disabled=!previewImage||!hasSelection;
+ apply.disabled=!previewImage||!hasSelection||maskApplied;restore.disabled=!previewImage||!maskApplied;clear.disabled=!previewImage||!hasSelection;invert.disabled=!previewImage||!hasSelection;
+ invert.textContent=maskInverted?"Return to painted selection":"Invert selection";
+ $("maskFeatherValue").textContent=$("maskFeather").value+" px";
  apply.textContent=maskApplied?"Background removed":"Remove background";
  $("maskStatus").textContent=!hasSelection
   ?"No selection yet. Choose Add / protect and paint the subject on the canvas. Use Erase to trim it and Restore to paint it back."
@@ -321,23 +325,38 @@ function updateMaskActions(){
    ?"Background masked. Use Restore subject to recover missed parts or Erase selection to remove more. Export as PNG/WebP to preserve transparency."
    :"Selection ready. Keep painting, refine with Erase/Restore, or remove the background when ready.";
 }
-function applyMaskToContext(target,w,h){
- if(!maskApplied||!maskCanvas||!maskStrokes.length)return;
- target.save();target.globalCompositeOperation="destination-in";target.drawImage(maskCanvas,0,0,w,h);target.restore();
+function renderEffectiveMask(w,h){
+ if(!maskCanvas||!maskStrokes.length)return null;
+ if(!maskEffectiveCanvas)maskEffectiveCanvas=document.createElement("canvas");
+ if(maskEffectiveCanvas.width!==w||maskEffectiveCanvas.height!==h){maskEffectiveCanvas.width=w;maskEffectiveCanvas.height=h;}
+ const effective=maskEffectiveCanvas.getContext("2d");if(!effective)return null;
+ effective.clearRect(0,0,w,h);
+ const feather=+$("maskFeather").value*w/Math.max(1,maskCanvas.width);
+ effective.filter=feather>0?"blur("+feather+"px)":"none";
+ if(maskInverted){
+  effective.fillStyle="#fff";effective.fillRect(0,0,w,h);
+  effective.globalCompositeOperation="destination-out";effective.drawImage(maskCanvas,0,0,w,h);
+ }else effective.drawImage(maskCanvas,0,0,w,h);
+ effective.globalCompositeOperation="source-over";effective.filter="none";
+ return maskEffectiveCanvas;
 }
-function drawMaskOverlay(target,w,h){
- if(!maskCanvas||!maskStrokes.length||!$("maskOverlay").checked)return;
+function applyMaskToContext(target,w,h,effectiveMask){
+ if(!maskApplied||!effectiveMask)return;
+ target.save();target.globalCompositeOperation="destination-in";target.drawImage(effectiveMask,0,0,w,h);target.restore();
+}
+function drawMaskOverlay(target,w,h,effectiveMask){
+ if(!effectiveMask||!$("maskOverlay").checked)return;
  if(!maskOverlayCanvas)maskOverlayCanvas=document.createElement("canvas");
  if(maskOverlayCanvas.width!==w||maskOverlayCanvas.height!==h){maskOverlayCanvas.width=w;maskOverlayCanvas.height=h;}
  const overlay=maskOverlayCanvas.getContext("2d");if(!overlay)return;
  overlay.clearRect(0,0,w,h);overlay.fillStyle="rgba(169,243,108,.38)";overlay.fillRect(0,0,w,h);
- overlay.globalCompositeOperation="destination-in";overlay.drawImage(maskCanvas,0,0,w,h);overlay.globalCompositeOperation="source-over";
+ overlay.globalCompositeOperation="destination-in";overlay.drawImage(effectiveMask,0,0,w,h);overlay.globalCompositeOperation="source-over";
  target.drawImage(maskOverlayCanvas,0,0,w,h);
 }
 function geometrySignature(){return JSON.stringify({rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,sourceWidth,sourceHeight});}
 function clearMaskForGeometryChange(){
  if(!maskStrokes.length)return;
- maskStrokes=[];maskApplied=false;maskRevision++;redrawMaskStrokes();
+ maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();
  announce("Framing changed. The background mask was cleared; paint the subject again.");
 }
 function drawTo(target,original=false,background=null,source=previewImage,sourceW=sourceWidth,sourceH=sourceHeight){
@@ -366,7 +385,7 @@ function drawTo(target,original=false,background=null,source=previewImage,source
  }
  drawSharpen(c,w,h,original);
  drawVignette(c,w,h,original);
- if(!original)applyMaskToContext(c,w,h);
+ if(!original&&maskStrokes.length){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(c,w,h,effectiveMask);}
  if(background){c.save();c.globalCompositeOperation="destination-over";c.fillStyle=background;c.fillRect(0,0,w,h);c.restore();}
  return size;
 }
@@ -394,7 +413,7 @@ function render(original=false,interactive=false){
   }
   drawSharpen(ctx,w,h,original);
   drawVignette(ctx,w,h,original);
-  if(!original){applyMaskToContext(ctx,w,h);drawMaskOverlay(ctx,w,h);}
+  if(!original&&maskStrokes.length){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(ctx,w,h,effectiveMask);drawMaskOverlay(ctx,w,h,effectiveMask);}
   if(!interactive){
    $("dimensions").textContent=size.w+" × "+size.h+" px";
    $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
@@ -450,7 +469,7 @@ function applyState(s){
  rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;
  cropPanX=clamp01(s.cropPanX??0.5);cropPanY=clamp01(s.cropPanY??0.5);
  outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;
- maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();redrawMaskStrokes();
+ maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskInverted=!!s.maskInverted;$("maskFeather").value=s.maskFeather??0;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();redrawMaskStrokes();
  $("fade").value=lookIntensity;syncSelections();syncCropInteraction();
  syncDimensionFields();updateLabels();scheduleRender();
 }
@@ -522,6 +541,7 @@ function update(push=true){if(!previewImage)return;const nextGeometry=geometrySi
 function resetAll(){
  if(!previewImage)return;
  sliders.forEach(k=>$(k).value=defaults[k]);
+ maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();
  rotation=0;flipH=false;flipV=false;cropRatio=null;cropPanX=0.5;cropPanY=0.5;outW=0;outH=0;look="original";lookIntensity=100;
  $("fade").value=100;syncSelections();syncCropInteraction();
  syncDimensionFields();update();toast("Semua edit dikembalikan.");
@@ -617,7 +637,8 @@ canvas.addEventListener("pointerdown",event=>{
  if(maskStrokes.length>=MAX_MASK_STROKES){toast("Batas 250 sapuan tercapai. Undo beberapa sapuan terlebih dahulu.");return;}
  const point=maskPointFromEvent(event),bounds=canvas.getBoundingClientRect();
  const radius=Math.max(1,(+$("brushSize").value/2)*maskCanvas.width/Math.max(1,bounds.width));
- const stroke={mode:$("maskMode").value==="erase"?"erase":"add",radius,points:[point]};
+ const requestedErase=$("maskMode").value==="erase";
+ const stroke={mode:(maskInverted?!requestedErase:requestedErase)?"erase":"add",radius,points:[point]};
  const context=maskCanvas.getContext("2d");if(!context)return;
  maskPointer={pointerId:event.pointerId,stroke,lastPoint:point};maskRevision++;
  paintMaskSegment(context,stroke,point,point);canvas.classList.add("mask-painting");
@@ -644,6 +665,9 @@ canvas.addEventListener("pointerup",finishMaskPaint);
 canvas.addEventListener("pointercancel",finishMaskPaint);
 $("brushSize").addEventListener("input",()=>{$("brushSizeValue").textContent=$("brushSize").value+" px";});
 $("maskOverlay").addEventListener("change",()=>scheduleRender(false,false));
+$("maskFeather").addEventListener("input",()=>{$("maskFeatherValue").textContent=$("maskFeather").value+" px";scheduleRender(false,true);});
+$("maskFeather").addEventListener("change",()=>{pushHistory();scheduleRender(false,false);});
+$("invertMask").addEventListener("click",()=>{if(!maskStrokes.length)return;maskInverted=!maskInverted;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast(maskInverted?"Seleksi dibalik.":"Seleksi kembali ke sapuan kuas.");});
 $("applyMask").addEventListener("click",()=>{
  if(!maskStrokes.length)return;
  maskApplied=true;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast("Latar di luar seleksi menjadi transparan.");
@@ -654,7 +678,7 @@ $("restoreMask").addEventListener("click",()=>{
 });
 $("clearMask").addEventListener("click",()=>{
  if(!maskStrokes.length)return;
- maskStrokes=[];maskApplied=false;maskRevision++;redrawMaskStrokes();scheduleRender(false,false);pushHistory();toast("Seleksi mask dihapus.");
+ maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();scheduleRender(false,false);pushHistory();toast("Seleksi mask dihapus.");
 });
 document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>{
  document.querySelectorAll(".tooltab").forEach(x=>x.classList.toggle("active",x===b));
@@ -849,6 +873,14 @@ async function runEditorSelfTest(){
   const alphaInside=ctx.getImageData(Math.floor(canvas.width/2),Math.floor(canvas.height/2),1,1).data[3];
   const alphaOutside=ctx.getImageData(1,1,1,1).data[3];
   verify("Remove background applies transparency outside the selection",maskApplied&&alphaOutside===0&&alphaInside>0);
+  $("invertMask").click();await afterFrame();
+  const invertedInside=ctx.getImageData(Math.floor(canvas.width/2),Math.floor(canvas.height/2),1,1).data[3];
+  const invertedOutside=ctx.getImageData(1,1,1,1).data[3];
+  verify("Invert selection reverses transparent and protected areas",maskInverted&&invertedInside===0&&invertedOutside>0);
+  $("invertMask").click();await afterFrame();
+  verify("Invert selection can be toggled back",!maskInverted&&ctx.getImageData(1,1,1,1).data[3]===0);
+  $("maskFeather").value=8;$("maskFeather").dispatchEvent(new Event("input",{bubbles:true}));$("maskFeather").dispatchEvent(new Event("change",{bubbles:true}));await afterFrame();
+  verify("Edge feather is applied to the effective selection",+$("maskFeather").value===8&&hasPixels());
   $("undo").click();await afterFrame();
   verify("Undo restores the un-applied manual mask",!maskApplied&&maskStrokes.length===1);
   $("redo").click();await afterFrame();
@@ -860,7 +892,7 @@ async function runEditorSelfTest(){
   transformTab.click();
   $("rotateRight").click();await afterFrame();
   verify("Rotate keeps preview visible",rotation===90&&hasPixels());
-  verify("Changing framing clears an incompatible mask",maskStrokes.length===0&&!maskApplied);
+  verify("Changing framing clears an incompatible mask",maskStrokes.length===0&&!maskApplied&&!maskInverted);
   $("flipH").click();await afterFrame();
   verify("Flip keeps preview visible",flipH===true&&hasPixels());
   $("undo").click();await afterFrame();
