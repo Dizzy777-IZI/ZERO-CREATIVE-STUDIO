@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { Script } from "node:vm";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 
 const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta.url), "utf8");
 const wrangler = await readFile(new URL("../wrangler.toml", import.meta.url), "utf8");
+const securityHeaders = await readFile(new URL("../web/cloudflare/_headers", import.meta.url), "utf8");
 const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 
 
@@ -148,6 +150,42 @@ test("crop mode displays a proportional composition guide over the canvas", () =
   assert.ok(script.includes('const frame=$("cropFrame")'));
   assert.ok(script.includes('Crop frame guide appears while crop mode is active'));
   assert.ok(script.includes('Crop frame guide hides when crop is reset'));
+});
+
+test("static assets receive a strict CSP and browser privacy protections", () => {
+  const policy = securityHeaders.match(/Content-Security-Policy:\\s*([^\\n]+)/)?.[1];
+  assert.ok(policy, "Cloudflare _headers defines a Content-Security-Policy");
+  const scriptHash = createHash("sha256").update(script, "utf8").digest("base64");
+  assert.ok(policy.includes("'sha256-" + scriptHash + "'"), "CSP hash must match the exact inline editor script");
+  const scriptDirective = policy.match(/(?:^|;\\s*)script-src\\s+([^;]+)/)?.[1] || "";
+  assert.match(scriptDirective, /'self'/);
+  assert.doesNotMatch(scriptDirective, /unsafe-inline|unsafe-eval/);
+  assert.match(policy, /img-src[^;]*blob:/);
+  assert.match(policy, /media-src[^;]*blob:/);
+  assert.match(policy, /connect-src 'self'/);
+  assert.match(policy, /object-src 'none'/);
+  assert.match(policy, /frame-ancestors 'none'/);
+  for (const header of [
+    "X-Content-Type-Options: nosniff", "X-Frame-Options: DENY",
+    "Referrer-Policy: no-referrer", "Cross-Origin-Opener-Policy: same-origin",
+    "Cross-Origin-Resource-Policy: same-origin", "X-Robots-Tag: noindex, nofollow"
+  ]) assert.ok(securityHeaders.includes(header), "missing browser security header: " + header);
+  assert.match(securityHeaders, /Permissions-Policy: camera=\\(\\), microphone=\\(\\), geolocation=\\(\\)/);
+});
+
+test("photo editor protects unsaved work and provides a lightweight vignette retouch control", () => {
+  assert.match(html, /automatic session recovery is not enabled yet/i);
+  assert.match(script, /function hasUnsavedChanges\(\)/);
+  assert.match(script, /window\.confirm\("Ada perubahan yang belum diekspor/);
+  assert.match(script, /window\.addEventListener\("beforeunload",e=>\{\s*if\(hasUnsavedChanges\(\)\)/);
+  assert.match(script, /window\.addEventListener\("pagehide",e=>\{/);
+  assert.match(script, /if\(!e\.persisted&&previewImage&&typeof previewImage\.close==="function"\)/);
+  assert.match(script, /function drawVignette\(target,w,h,original=false\)/);
+  assert.ok(html.includes('id="vignette"'));
+  assert.ok(script.includes("Vignette darkens the image edges"));
+  assert.ok(script.includes("Unsaved edits trigger a leave-page warning"));
+  assert.ok(script.includes("Replacing an edited photo requires confirmation"));
+  assert.ok(script.includes("Successful export clears the unsaved-work warning"));
 });
 
 test("inline photo editor script parses without syntax errors", () => {
