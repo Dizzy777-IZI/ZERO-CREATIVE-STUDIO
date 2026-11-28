@@ -10,5 +10,8 @@ requires-python = ">=3.11"
 license = { text = "Proprietary - private project" }
 dependencies = ["PyYAML==6.0.2"]
 
+[project.optional-dependencies]
+bybit-readonly = ["pybit==5.18.0"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
