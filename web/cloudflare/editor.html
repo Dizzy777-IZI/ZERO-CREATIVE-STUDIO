@@ -99,6 +99,8 @@ const MAX_OUTPUT_DIMENSION=6000;
 const MAX_OUTPUT_PIXELS=24000000;
 const PREVIEW_MAX_DIMENSION=1400;
 const PREVIEW_MAX_PIXELS=1600000;
+const INTERACTIVE_PREVIEW_MAX_DIMENSION=1000;
+const INTERACTIVE_PREVIEW_MAX_PIXELS=640000;
 const $=id=>document.getElementById(id);
 const canvas=$("preview");
 const ctx=canvas.getContext("2d",{alpha:true});
@@ -106,7 +108,7 @@ const sliders=["brightness","contrast","saturation","warmth","sharpness"];
 const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0};
 let previewImage=null,file=null,sourceWidth=0,sourceHeight=0,rotation=0,flipH=false,flipV=false;
 let cropRatio=null,outW=0,outH=0,history=[],historyIndex=-1;
-let look="original",lookIntensity=100,framePending=0,pendingOriginal=false;
+let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
 let loadSequence=0,lastDimensionEdited="width",exporting=false;
 
 function state(){
@@ -178,11 +180,13 @@ function drawTo(target,original=false,background=null,source=previewImage,source
  }
  return size;
 }
-function render(original=false){
+function render(original=false,interactive=false){
  if(!previewImage)return;
  try{
   const size=outputSize();
-  const scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(size.w,size.h),Math.sqrt(PREVIEW_MAX_PIXELS/(size.w*size.h)));
+  const maxDimension=interactive?INTERACTIVE_PREVIEW_MAX_DIMENSION:PREVIEW_MAX_DIMENSION;
+  const maxPixels=interactive?INTERACTIVE_PREVIEW_MAX_PIXELS:PREVIEW_MAX_PIXELS;
+  const scale=Math.min(1,maxDimension/Math.max(size.w,size.h),Math.sqrt(maxPixels/(size.w*size.h)));
   const w=Math.max(1,Math.round(size.w*scale)),h=Math.max(1,Math.round(size.h*scale));
   canvas.width=w;canvas.height=h;
   const r=cropRect(previewImage.width,previewImage.height);
@@ -198,18 +202,23 @@ function render(original=false){
    ctx.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
    ctx.fillRect(0,0,w,h);ctx.restore();
   }
-  $("dimensions").textContent=size.w+" × "+size.h+" px";
-  $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
-  $("exportSummary").textContent=size.w+" × "+size.h+" px · "+$("format").selectedOptions[0].textContent+(size.scaled?" · optimized for browser memory":"");
-  if(size.scaled)announce("Output otomatis dibatasi agar ekspor tetap ringan (maks. 24 MP / 6.000 px).");
-  else announce("Preview ringan aktif · ekspor kualitas penuh sesuai ukuran output.");
-  updateLabels();
+  if(!interactive){
+   $("dimensions").textContent=size.w+" × "+size.h+" px";
+   $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
+   $("exportSummary").textContent=size.w+" × "+size.h+" px · "+$("format").selectedOptions[0].textContent+(size.scaled?" · optimized for browser memory":"");
+   if(size.scaled)announce("Output otomatis dibatasi agar ekspor tetap ringan (maks. 24 MP / 6.000 px).");
+   else announce("Preview ringan aktif · ekspor kualitas penuh sesuai ukuran output.");
+   updateLabels();
+  }
  }catch(e){announce("Render gagal: "+e.message);}
 }
-function scheduleRender(original=false){
- pendingOriginal=original;
+function scheduleRender(original=false,interactive=false){
+ pendingOriginal=original;pendingInteractive=interactive;
  if(framePending)return;
- framePending=requestAnimationFrame(()=>{framePending=0;render(pendingOriginal);});
+ framePending=requestAnimationFrame(()=>{
+  const drawOriginal=pendingOriginal,drawInteractive=pendingInteractive;
+  framePending=0;render(drawOriginal,drawInteractive);
+ });
 }
 function updateLabels(){
  sliders.forEach(k=>{
@@ -362,8 +371,8 @@ document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>
  document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id==="panel-"+b.dataset.panel));
 }));
 sliders.forEach(k=>{
- $(k).addEventListener("input",()=>{scheduleRender();updateLabels();});
- $(k).addEventListener("change",pushHistory);
+ $(k).addEventListener("input",()=>{scheduleRender(false,true);updateLabels();});
+ $(k).addEventListener("change",()=>{scheduleRender(false,false);pushHistory();});
 });
 document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
  if(!previewImage)return;
@@ -371,8 +380,8 @@ document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click"
  document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x===b));
  update();toast(b.textContent.trim()+" diterapkan.");
 }));
-$("fade").addEventListener("input",()=>{lookIntensity=+$("fade").value;scheduleRender();updateLabels();});
-$("fade").addEventListener("change",pushHistory);
+$("fade").addEventListener("input",()=>{lookIntensity=+$("fade").value;scheduleRender(false,true);updateLabels();});
+$("fade").addEventListener("change",()=>{scheduleRender(false,false);pushHistory();});
 $("rotateLeft").onclick=()=>{if(previewImage){rotation=(rotation+270)%360;if(outW&&outH)[outW,outH]=[outH,outW];syncDimensionFields();update();}};
 $("rotateRight").onclick=()=>{if(previewImage){rotation=(rotation+90)%360;if(outW&&outH)[outW,outH]=[outH,outW];syncDimensionFields();update();}};
 $("flipH").onclick=()=>{if(previewImage){flipH=!flipH;update();}};
