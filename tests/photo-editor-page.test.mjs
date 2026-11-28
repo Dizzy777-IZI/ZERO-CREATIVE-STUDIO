@@ -92,7 +92,7 @@ test("undo and redo synchronize selected Look and Crop controls with restored st
   }));
   [...presets, ...crops].forEach((node) => { node.classList.owner = node; });
   const document = { querySelectorAll(selector) { return selector === "[data-preset]" ? presets : crops; } };
-  const syncSelections = new Function("document", "look", "cropRatio", "return function syncSelections() {" + block[1] + "\\n}")(document, "cinema", 0.8);
+  const syncSelections = new Function("document", "look", "cropRatio", "return function syncSelections() {" + block[1] + "\n}")(document, "cinema", 0.8);
   syncSelections();
   assert.deepEqual(presets.map((x) => x.selected), [false, true, false]);
   assert.deepEqual(crops.map((x) => x.selected), [false, false, true]);
