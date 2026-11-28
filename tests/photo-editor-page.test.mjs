@@ -118,7 +118,7 @@ test("browser self-test mode covers local load, adjustments, transforms, sharpen
     "Tint grading shifts image color", "Undo restores previous tint setting", "Redo reapplies tint setting",
     "Manual brush creates a local subject mask", "Remove background applies transparency outside the selection",
     "Undo restores the un-applied manual mask", "Redo reapplies transparent background masking",
-    "Changing framing clears an incompatible mask",
+    "Changing framing clears an incompatible mask", "Mask canvas tracks output geometry",
     "Invert selection reverses transparent and protected areas",
     "Invert selection can be toggled back", "Edge feather is applied to the effective selection"
   ]) assert.ok(script.includes(check), "missing self-test check: " + check);
@@ -243,6 +243,7 @@ test("manual background masking paints reversible vector strokes and exports tru
   assert.match(script, /function finishMaskPaint\(event\)/);
   assert.match(script, /mode:\(maskInverted\?!requestedErase:requestedErase\)\?"erase":"add"/);
   assert.match(script, /function geometrySignature\(\)/);
+  assert.match(script, /function resizeMaskCanvasForCurrentGeometry\(\)/);
   assert.match(script, /clearMaskForGeometryChange\(\)/);
   assert.match(script, /maskStrokes,maskApplied,maskInverted,maskFeather:\+\$\("maskFeather"\)\.value,maskRevision/);
   assert.match(script, /maskStrokes=s\.maskStrokes\|\|\[\];maskApplied=!!s\.maskApplied;maskInverted=!!s\.maskInverted/);
