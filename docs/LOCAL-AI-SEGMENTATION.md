@@ -16,6 +16,8 @@ This v1 model is specifically trained for people and portrait-style images. It i
 - The worker performs inference locally with MediaPipe Tasks Vision using the CPU delegate.
 - The only cross-origin downloads in this path are the pinned MediaPipe JS/WASM runtime and the pinned model file. Requests use GET, omit credentials, and send no photo bytes.
 - The downloaded model is rejected unless its byte length and SHA-256 match the pinned values below.
+- MediaPipe's published privacy notice says the task runs on-device and does not send input images to Google, but the SDK can send API usage/performance metrics. ZERO requires an explicit, per-page-session checkbox before loading the SDK or model. See the [MediaPipe privacy notice](https://developers.google.com/edge/mediapipe/solutions/privacy).
+- ZERO's Content Security Policy only allows the pinned jsDelivr runtime and Google model host for cross-origin script/connect requests; other destinations are not allowlisted. The exact destinations and fields for MediaPipe metrics are not fully documented, so do not describe the integration as telemetry-free.
 - Manual selection continues to work if the CDN, model download, WASM runtime, or AI initialization fails.
 
 ## Pinned dependencies and provenance
@@ -34,7 +36,8 @@ Model source and metadata identify it as a 256 × 256 FP16 selfie/person segment
 
 ## Performance and memory
 
-- The model itself is approximately 250 KB; the runtime and WASM are additional on-demand downloads.
+- The model itself is 249,537 bytes (~250 KB). The pinned MediaPipe 1.2.3 WASM runtime is much larger (the package's published WebAssembly artifacts are about 14.7 MB each); it is lazy-loaded only after explicit consent and a click on Detect person locally.
+- First-use download size is therefore not limited to the 250 KB model and depends on which WASM binary the browser selects.
 - Inference is isolated in a dedicated worker to avoid running the model synchronously on the editor's UI thread.
 - The inference input uses the editor's capped preview dimensions, not the original full-resolution file.
 - The worker transfers a one-byte-per-pixel confidence map back to the editor.
