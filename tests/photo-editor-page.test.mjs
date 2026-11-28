@@ -120,6 +120,15 @@ test("range sliders suppress blue pointer-focus outlines and use subtle ZERO-gre
   assert.doesNotMatch(html, /input:focus,select:focus,button:focus-visible\{outline:2px solid var\(--blue\)/);
 });
 
+test("image decode falls back to HTMLImageElement when createImageBitmap rejects", () => {
+  assert.match(script, /try\{full=await createImageBitmap\(f\);\}catch\{full=null;\}/);
+  assert.match(script, /if\(full\)\{/);
+  assert.match(script, /try\{\s*const bitmap=await createImageBitmap\(file\);\s*return \{source:bitmap,cleanup:\(\)=>bitmap\.close\(\)\};\s*\}catch\{\}/);
+  assert.match(script, /const url=URL\.createObjectURL\(file\),img=new Image\(\)/);
+  assert.ok(script.includes("HTMLImageElement fallback loads the local photo"));
+  assert.ok(script.includes("HTMLImageElement fallback decodes the export source"));
+});
+
 test("inline photo editor script parses without syntax errors", () => {
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
