@@ -28,6 +28,8 @@ test("photo editor accepts local formats with explicit source-file limits", () =
 test("photo editor provides adjustments, creative looks, transforms, history and export", () => {
   for (const control of [
     "brightness", "contrast", "saturation", "warmth", "sharpness", "sharpen",
+    "highlights", "shadows", "tint", "maskMode", "brushSize", "maskOverlay",
+    "applyMask", "restoreMask", "clearMask",
     "highlights", "shadows", "tint",
     "rotateLeft", "rotateRight", "flipH", "flipV", "applySize",
     "undo", "redo", "download", "format", "quality"
@@ -113,7 +115,10 @@ test("browser self-test mode covers local load, adjustments, transforms, sharpen
     "PNG export produces a non-empty image", "Sharpen changes edge detail in preview",
     "Undo restores the previous sharpen amount", "Redo restores the sharpen amount",
     "Highlights grading changes brighter tones", "Shadows grading changes darker tones",
-    "Tint grading shifts image color", "Undo restores previous tint setting", "Redo reapplies tint setting"
+    "Tint grading shifts image color", "Undo restores previous tint setting", "Redo reapplies tint setting",
+    "Manual brush creates a local subject mask", "Remove background applies transparency outside the selection",
+    "Undo restores the un-applied manual mask", "Redo reapplies transparent background masking",
+    "Changing framing clears an incompatible mask"
   ]) assert.ok(script.includes(check), "missing self-test check: " + check);
   assert.match(script, /new URLSearchParams\(location\.search\)\.get\("selftest"\)==="1"/);
 });
@@ -219,6 +224,37 @@ test("color grading controls are included in the state and shared row-buffer pix
   assert.ok(script.includes("drawSharpen(ctx,w,h,original)"), "preview applies grading");
   assert.ok(script.includes("drawSharpen(c,w,h,original)"), "export applies grading");
   assert.match(script, /\["warmth","highlights","shadows","tint"\]\.includes\(k\)/);
+});
+
+
+test("manual background masking paints reversible vector strokes and exports true transparency", () => {
+  for (const control of ["maskMode", "brushSize", "maskOverlay", "applyMask", "restoreMask", "clearMask"]) {
+    assert.match(html, new RegExp('id="' + control + '"'));
+  }
+  assert.match(html, /data-panel="background"/);
+  assert.match(script, /const MAX_MASK_STROKES=250,MAX_MASK_POINTS_PER_STROKE=4000/);
+  assert.match(script, /function initializeMaskCanvas\(\)/);
+  assert.match(script, /function redrawMaskStrokes\(\)/);
+  assert.match(script, /function applyMaskToContext\(target,w,h\)/);
+  assert.match(script, /target\.globalCompositeOperation="destination-in"/);
+  assert.match(script, /function drawMaskOverlay\(target,w,h\)/);
+  assert.match(script, /function finishMaskPaint\(event\)/);
+  assert.match(script, /mode:\$\("maskMode"\)\.value==="erase"\?"erase":"add"/);
+  assert.match(script, /function geometrySignature\(\)/);
+  assert.match(script, /clearMaskForGeometryChange\(\)/);
+  assert.match(script, /maskStrokes,maskApplied,maskRevision/);
+  assert.match(script, /maskStrokes=s\.maskStrokes\|\|\[\];maskApplied=!!s\.maskApplied/);
+  assert.ok(script.includes("Manual brush creates a local subject mask"));
+  assert.ok(script.includes("Remove background applies transparency outside the selection"));
+  assert.ok(script.includes("Undo restores the un-applied manual mask"));
+  assert.ok(script.includes("Redo reapplies transparent background masking"));
+  assert.ok(script.includes("Changing framing clears an incompatible mask"));
+});
+
+test("JPEG background is composited behind the mask so transparent pixels remain white", () => {
+  assert.match(script, /getContext\("2d",\{alpha:true\}\)/);
+  assert.match(script, /if\(!original\)applyMaskToContext\(c,w,h\)/);
+  assert.match(script, /globalCompositeOperation="destination-over";c\.fillStyle=background/);
 });
 
 test("inline photo editor script parses without syntax errors", () => {
