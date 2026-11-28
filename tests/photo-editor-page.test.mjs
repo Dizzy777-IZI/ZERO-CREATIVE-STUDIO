@@ -112,6 +112,14 @@ test("browser self-test mode covers local load, adjustments, transforms, history
   assert.match(script, /new URLSearchParams\(location\.search\)\.get\("selftest"\)==="1"/);
 });
 
+test("range sliders suppress blue pointer-focus outlines and use subtle ZERO-green keyboard focus", () => {
+  assert.match(html, /input\[type=range\]:focus,input\[type=range\]:focus-visible\{outline:none;box-shadow:none\}/);
+  assert.match(html, /input\[type=range\]:focus-visible::-webkit-slider-thumb\{box-shadow:0 0 0 4px rgba\(169,243,108,\.2\)\}/);
+  assert.match(html, /input\[type=range\]:focus-visible::-moz-range-thumb\{box-shadow:0 0 0 4px rgba\(169,243,108,\.2\)\}/);
+  assert.match(html, /input:not\(\[type=range\]\):focus-visible,select:focus-visible,button:focus-visible\{outline:2px solid var\(--accent\)/);
+  assert.doesNotMatch(html, /input:focus,select:focus,button:focus-visible\{outline:2px solid var\(--blue\)/);
+});
+
 test("inline photo editor script parses without syntax errors", () => {
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
