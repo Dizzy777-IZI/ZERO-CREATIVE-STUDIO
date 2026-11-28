@@ -288,7 +288,10 @@ async function loadFile(f){
  let full=null,preview=null,width=0,height=0;
  try{
   if(typeof createImageBitmap==="function"){
-   full=await createImageBitmap(f);width=full.width;height=full.height;
+   try{full=await createImageBitmap(f);}catch{full=null;}
+  }
+  if(full){
+   width=full.width;height=full.height;
    const pixels=width*height;
    if(!width||!height||pixels>MAX_INPUT_PIXELS)throw new Error("Resolusi tidak valid atau melebihi 24 MP.");
    const scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(width,height),Math.sqrt(PREVIEW_MAX_PIXELS/pixels));
@@ -339,8 +342,10 @@ function resetAll(){
 }
 async function decodeOriginalForExport(){
  if(typeof createImageBitmap==="function"){
-  const bitmap=await createImageBitmap(file);
-  return {source:bitmap,cleanup:()=>bitmap.close()};
+  try{
+   const bitmap=await createImageBitmap(file);
+   return {source:bitmap,cleanup:()=>bitmap.close()};
+  }catch{}
  }
  const url=URL.createObjectURL(file),img=new Image();
  try{
@@ -479,6 +484,15 @@ async function runEditorSelfTest(){
   await loadFile(testFile);await afterFrame();
   verify("Local image loaded",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80);
   verify("Preview visible and contains pixels",hasPixels());
+  const nativeBitmapDecoder=window.createImageBitmap;
+  try{
+   if(typeof nativeBitmapDecoder==="function")window.createImageBitmap=undefined;
+   await loadFile(testFile);await afterFrame();
+   verify("HTMLImageElement fallback loads the local photo",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80&&hasPixels());
+   const fallbackDecoded=await decodeOriginalForExport();
+   verify("HTMLImageElement fallback decodes the export source",fallbackDecoded.source.naturalWidth===120&&fallbackDecoded.source.naturalHeight===80);
+   fallbackDecoded.cleanup();
+  }finally{window.createImageBitmap=nativeBitmapDecoder;}
   $("brightness").value=135;
   $("brightness").dispatchEvent(new Event("input",{bubbles:true}));
   $("brightness").dispatchEvent(new Event("change",{bubbles:true}));
