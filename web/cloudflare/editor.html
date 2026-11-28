@@ -57,7 +57,7 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
  </nav>
  <div class="dropzone" id="dropzone"><div class="drop-icon">↥</div><strong>Drop your image here</strong><p>JPG, PNG, WebP, AVIF<br>Maximum 30 MB · 24 MP source</p><button class="btn" id="browse">Choose image</button></div>
  <div class="file-card"><div class="section-label">Current file</div><div class="file-title" id="fileName">No image selected</div><div class="file-meta" id="fileMeta">Your original stays on this device.</div></div>
- <p class="hint">ZERO runs edits in your browser. Your photos are never uploaded.</p>
+ <p class="hint">ZERO processes photos locally; files are not uploaded. Changes remain in this tab only. Export your work before leaving — automatic session recovery is not enabled yet.</p>
 </aside>
 <main class="stage-area">
  <div class="stage-head"><div><div class="stage-title">Canvas</div><div class="stage-sub" id="canvasMeta">Ready for your next idea</div></div><div class="stage-tools"><button class="btn square" id="compare" title="Hold to compare original" disabled>◉</button><button class="btn square" id="fit" title="Fit canvas">⌗</button></div></div>
@@ -78,6 +78,7 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
   <div class="control"><div class="control-head"><label for="saturation">Saturation</label><output class="val" id="saturationValue">100%</output></div><input id="saturation" type="range" min="0" max="200" value="100"></div>
   <div class="control"><div class="control-head"><label for="warmth">Warmth</label><output class="val" id="warmthValue">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
   <div class="control"><div class="control-head"><label for="sharpness">Soft focus</label><output class="val" id="sharpnessValue">0 px</output></div><input id="sharpness" type="range" min="0" max="4" step=".5" value="0"></div>
+  <div class="control"><div class="control-head"><label for="vignette">Vignette</label><output class="val" id="vignetteValue">0%</output></div><input id="vignette" type="range" min="0" max="100" value="0"></div>
   <div class="divider"></div><div class="action-grid"><button class="btn" id="auto">Auto tone</button><button class="btn" id="resetAdjust">Reset adjustments</button></div>
  </section>
  <section class="panel" id="panel-filters">
@@ -124,17 +125,19 @@ const INTERACTIVE_PREVIEW_MAX_PIXELS=640000;
 const $=id=>document.getElementById(id);
 const canvas=$("preview");
 const ctx=canvas.getContext("2d",{alpha:true});
-const sliders=["brightness","contrast","saturation","warmth","sharpness"];
-const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0};
+const sliders=["brightness","contrast","saturation","warmth","sharpness","vignette"];
+const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0,vignette:0};
 let previewImage=null,file=null,sourceWidth=0,sourceHeight=0,rotation=0,flipH=false,flipV=false;
 let cropRatio=null,cropPanX=0.5,cropPanY=0.5,outW=0,outH=0,history=[],historyIndex=-1;
 let cropDrag=null;
 let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
-let loadSequence=0,lastDimensionEdited="width",exporting=false;
+let loadSequence=0,lastDimensionEdited="width",exporting=false,savedStateSignature=null;
 
 function state(){
  return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity};
 }
+function currentStateSignature(){return JSON.stringify(state());}
+function hasUnsavedChanges(){return !!previewImage&&savedStateSignature!==null&&currentStateSignature()!==savedStateSignature;}
 function clamp01(value){return Math.max(0,Math.min(1,value));}
 function cropRect(w,h){
  if(!cropRatio)return{x:0,y:0,w,h,maxX:0,maxY:0};
@@ -203,6 +206,15 @@ function filters(scale=1){
  const base="brightness("+b+"%) contrast("+c+"%) saturate("+s+"%)";
  return [base,extra,"blur("+(soft*scale)+"px)"].filter(Boolean).join(" ");
 }
+function drawVignette(target,w,h,original=false){
+ const amount=original?0:Math.max(0,Math.min(100,+$("vignette").value))/100;
+ if(!amount)return;
+ const inner=Math.max(1,Math.min(w,h)*0.16),outer=Math.max(inner+1,Math.max(w,h)*0.74);
+ const gradient=target.createRadialGradient(w/2,h/2,inner,w/2,h/2,outer);
+ gradient.addColorStop(0,"rgba(0,0,0,0)");
+ gradient.addColorStop(1,"rgba(0,0,0,"+(amount*0.72)+")");
+ target.save();target.fillStyle=gradient;target.fillRect(0,0,w,h);target.restore();
+}
 function drawTo(target,original=false,background=null,source=previewImage,sourceW=sourceWidth,sourceH=sourceHeight){
  const size=outputSize();
  const w=size.w,h=size.h;
@@ -228,6 +240,7 @@ function drawTo(target,original=false,background=null,source=previewImage,source
   c.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
   c.fillRect(0,0,w,h);c.restore();
  }
+ drawVignette(c,w,h,original);
  return size;
 }
 function render(original=false,interactive=false){
@@ -252,6 +265,7 @@ function render(original=false,interactive=false){
    ctx.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
    ctx.fillRect(0,0,w,h);ctx.restore();
   }
+  drawVignette(ctx,w,h,original);
   if(!interactive){
    $("dimensions").textContent=size.w+" × "+size.h+" px";
    $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
@@ -317,8 +331,12 @@ function toast(message){
  const t=$("toast");t.textContent=message;t.classList.add("show");
  clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400);
 }
-async function loadFile(f){
+async function loadFile(f,{skipConfirm=false}={}){
  if(!f)return;
+ if(previewImage&&hasUnsavedChanges()&&!skipConfirm){
+  const accepted=window.confirm("Ada perubahan yang belum diekspor. Ganti foto dan buang perubahan tersebut?");
+  if(!accepted){toast("Foto saat ini tetap dipertahankan.");return;}
+ }
  if(!/^image\/(jpeg|png|webp|avif)$/.test(f.type)){toast("Pilih file JPEG, PNG, WebP, atau AVIF.");return;}
  if(f.size>MAX_BYTES){toast("File melebihi batas 30 MB.");return;}
  const sequence=++loadSequence;
@@ -362,7 +380,7 @@ async function loadFile(f){
   $("empty").hidden=true;canvas.hidden=false;$("compare").disabled=false;
   $("fileName").textContent=f.name;
   $("fileMeta").textContent=(f.size/1024/1024).toFixed(2)+" MB · "+width+" × "+height+" px · preview optimized";
-  syncDimensionFields();history=[];historyIndex=-1;render();pushHistory();toast("Foto dibuka. Preview ringan dibuat di perangkat ini.");
+  syncDimensionFields();history=[];historyIndex=-1;render();pushHistory();savedStateSignature=currentStateSignature();toast("Foto dibuka. Preview ringan dibuat di perangkat ini.");
  }catch(error){
   if(full&&typeof full.close==="function")full.close();
   if(preview&&typeof preview.close==="function")preview.close();
@@ -409,6 +427,7 @@ async function exportImage(){
   const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download="zero-studio-"+Date.now()+"."+ext;
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  savedStateSignature=currentStateSignature();
   toast("Ekspor selesai · "+(blob.size/1024/1024).toFixed(2)+" MB");
   announce("Ekspor "+ext.toUpperCase()+" berhasil.");
  }catch(e){toast("Ekspor gagal: "+e.message);announce("Ekspor gagal: "+e.message);}
@@ -522,7 +541,14 @@ document.addEventListener("keydown",e=>{
  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();$("redo").click();}
  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();exportImage();}
 });
-window.addEventListener("beforeunload",()=>{loadSequence++;if(framePending)cancelAnimationFrame(framePending);if(previewImage&&typeof previewImage.close==="function")previewImage.close();});
+window.addEventListener("beforeunload",e=>{
+ if(hasUnsavedChanges()){e.preventDefault();e.returnValue="";}
+});
+window.addEventListener("pagehide",e=>{
+ loadSequence++;
+ if(framePending){cancelAnimationFrame(framePending);framePending=0;}
+ if(!e.persisted&&previewImage&&typeof previewImage.close==="function")previewImage.close();
+});
 async function runEditorSelfTest(){
  const checks=[];
  const verify=(name,ok)=>{checks.push({name,ok:!!ok});if(!ok)throw new Error(name);};
@@ -546,13 +572,14 @@ async function runEditorSelfTest(){
   const imageBlob=await new Promise(resolve=>source.toBlob(resolve,"image/png"));
   verify("Synthetic PNG created",!!imageBlob&&imageBlob.size>0);
   const testFile=new File([imageBlob],"zero-local-self-test.png",{type:"image/png"});
-  await loadFile(testFile);await afterFrame();
+  await loadFile(testFile,{skipConfirm:true});await afterFrame();
   verify("Local image loaded",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80);
   verify("Preview visible and contains pixels",hasPixels());
+  verify("New photo session starts clean",!hasUnsavedChanges());
   const nativeBitmapDecoder=window.createImageBitmap;
   try{
    if(typeof nativeBitmapDecoder==="function")window.createImageBitmap=undefined;
-   await loadFile(testFile);await afterFrame();
+   await loadFile(testFile,{skipConfirm:true});await afterFrame();
    verify("HTMLImageElement fallback loads the local photo",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80&&hasPixels());
    const fallbackDecoded=await decodeOriginalForExport();
    verify("HTMLImageElement fallback decodes the export source",fallbackDecoded.source.naturalWidth===120&&fallbackDecoded.source.naturalHeight===80);
@@ -563,11 +590,27 @@ async function runEditorSelfTest(){
   $("brightness").dispatchEvent(new Event("change",{bubbles:true}));
   await afterFrame();
   verify("Brightness render keeps preview visible",hasPixels());
+  verify("Editing marks the photo session as unsaved",hasUnsavedChanges());
+  const originalConfirm=window.confirm;let replacementPrompted=false;
+  window.confirm=()=>{replacementPrompted=true;return false;};
+  await loadFile(new File([imageBlob],"rejected-replacement.png",{type:"image/png"}));
+  window.confirm=originalConfirm;
+  verify("Replacing an edited photo requires confirmation",replacementPrompted&&file===testFile&&hasUnsavedChanges());
+  const unloadEvent=new Event("beforeunload",{cancelable:true});
+  window.dispatchEvent(unloadEvent);
+  verify("Unsaved edits trigger a leave-page warning",unloadEvent.defaultPrevented);
   $("contrast").value=125;
   $("contrast").dispatchEvent(new Event("input",{bubbles:true}));
   $("contrast").dispatchEvent(new Event("change",{bubbles:true}));
   await afterFrame();
   verify("Contrast render keeps preview visible",hasPixels());
+  const cornerBefore=ctx.getImageData(1,1,1,1).data[0];
+  $("vignette").value=82;
+  $("vignette").dispatchEvent(new Event("input",{bubbles:true}));
+  $("vignette").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const cornerAfter=ctx.getImageData(1,1,1,1).data[0];
+  verify("Vignette darkens the image edges",cornerAfter<cornerBefore&&hasPixels());
   const cinema=document.querySelector('[data-preset="cinema"]');
   verify("Cinematic preset control exists",!!cinema);cinema.click();await afterFrame();
   verify("Look preset render keeps preview visible",look==="cinema"&&hasPixels());
@@ -615,6 +658,8 @@ async function runEditorSelfTest(){
    if(exportCanvas){exportCanvas.width=0;exportCanvas.height=0;}
   }
   verify("PNG export produces a non-empty image",!!blob&&blob.type==="image/png"&&blob.size>0);
+  if(blob)savedStateSignature=currentStateSignature();
+  verify("Successful export clears the unsaved-work warning",!hasUnsavedChanges());
   const passed=checks.filter(x=>x.ok).length;
   announce("SELF-TEST PASSED · "+passed+"/"+checks.length+" checks · local only");
   console.info("[ZERO SELF-TEST]",checks);
