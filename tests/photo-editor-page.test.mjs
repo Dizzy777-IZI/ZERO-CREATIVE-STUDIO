@@ -232,7 +232,7 @@ test("manual background masking paints reversible vector strokes and exports tru
     assert.match(html, new RegExp('id="' + control + '"'));
   }
   assert.match(html, /data-panel="background"/);
-  assert.match(script, /const MAX_MASK_STROKES=250,MAX_MASK_POINTS_PER_STROKE=4000/);
+  assert.match(script, /const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000/);
   assert.match(script, /function initializeMaskCanvas\(\)/);
   assert.match(script, /function redrawMaskStrokes\(\)/);
   assert.match(script, /function applyMaskToContext\(target,w,h\)/);
