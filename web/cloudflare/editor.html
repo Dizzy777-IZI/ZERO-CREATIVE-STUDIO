@@ -110,7 +110,7 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
  </section>
  <section class="panel" id="panel-background">
   <h2 class="panel-heading">AI Background &amp; Mask</h2><p class="panel-desc">Detect people locally with a lightweight on-device model, then refine the mask manually before removing the background.</p>
-  <div class="export-card"><strong>Local AI person detection</strong><p class="hint">First use downloads a pinned MediaPipe runtime and a verified 250 KB model. Your photo stays in this tab and is never uploaded. Optimized for people and portraits, not arbitrary objects.</p><button class="btn primary" id="aiSegment" style="width:100%" disabled>Detect person locally</button><p class="hint" id="aiStatus" role="status" aria-live="polite">Load a photo to enable local AI detection. Manual brush tools work without the AI runtime.</p><div class="control"><div class="control-head"><label for="aiThreshold">AI edge threshold</label><output class="val" id="aiThresholdValue">45%</output></div><input id="aiThreshold" type="range" min="10" max="90" step="1" value="45" disabled></div></div>
+  <div class="export-card"><strong>Local AI person detection</strong><p class="hint">First use downloads a pinned MediaPipe runtime and a verified 250 KB model. The image is processed on-device and is not sent to Google. MediaPipe also reports API usage/performance metrics to Google; read its <a href="https://developers.google.com/edge/mediapipe/solutions/privacy" target="_blank" rel="noopener noreferrer">privacy notice</a> before continuing. AI detection is limited to people/portraits, not arbitrary objects.</p><label class="checkrow"><input type="checkbox" id="aiConsent"> I agree to MediaPipe usage and performance metrics being sent to Google.</label><button class="btn primary" id="aiSegment" style="width:100%" disabled>Detect person locally</button><p class="hint" id="aiStatus" role="status" aria-live="polite">Load a photo to enable local AI detection. Manual brush tools work without the AI runtime.</p><div class="control"><div class="control-head"><label for="aiThreshold">AI edge threshold</label><output class="val" id="aiThresholdValue">45%</output></div><input id="aiThreshold" type="range" min="10" max="90" step="1" value="45" disabled></div></div>
   <div class="divider"></div><div class="section-label">Manual refinement</div>
   <div class="control"><div class="control-head"><label for="maskMode">Brush mode</label></div><select id="maskMode"><option value="add">Add / protect</option><option value="erase">Erase selection</option><option value="restore">Restore subject</option></select></div>
   <div class="control"><div class="control-head"><label for="brushSize">Brush size</label><output class="val" id="brushSizeValue">64 px</output></div><input id="brushSize" type="range" min="8" max="180" step="2" value="64"></div>
@@ -343,8 +343,9 @@ function updateMaskActions(){
  if(!apply||!restore||!clear||!invert)return;
  const hasSelection=hasMaskSelection();
  apply.disabled=!previewImage||!hasSelection||maskApplied;restore.disabled=!previewImage||!maskApplied;clear.disabled=!previewImage||!hasSelection;invert.disabled=!previewImage||!hasSelection;
- $("aiSegment").disabled=!previewImage||aiSegmentationBusy;
+ $("aiSegment").disabled=!previewImage||!$("aiConsent").checked||aiSegmentationBusy;
  $("aiSegment").textContent=aiSegmentationBusy?"Detecting locally…":"Detect person locally";
+ if(!$("aiConsent").checked&&!aiSegmentationBusy)$("aiStatus").textContent="AI requires your consent to MediaPipe usage/performance metrics. Manual brush remains available without AI."; 
  $("aiThreshold").disabled=!aiMaskData;
  $("aiThresholdValue").textContent=$("aiThreshold").value+"%";
  invert.textContent=maskInverted?"Return to painted selection":"Invert selection";
@@ -573,7 +574,7 @@ function createLocalAIWorker(){
  segmenterWorker=worker;return worker;
 }
 async function runLocalPersonSegmentation(){
- if(!previewImage||aiSegmentationBusy)return;
+ if(!previewImage||!$("aiConsent").checked||aiSegmentationBusy)return;
  if(hasMaskSelection()&&!window.confirm("Replace the current background selection with a new AI person mask? You can Undo afterward."))return;
  aiSegmentationBusy=true;updateMaskActions();
  $("aiStatus").textContent="Preparing a small local preview for AI…";
@@ -779,6 +780,7 @@ canvas.addEventListener("pointercancel",finishMaskPaint);
 $("brushSize").addEventListener("input",()=>{$("brushSizeValue").textContent=$("brushSize").value+" px";});
 $("maskOverlay").addEventListener("change",()=>scheduleRender(false,false));
 $("aiSegment").addEventListener("click",runLocalPersonSegmentation);
+$("aiConsent").addEventListener("change",()=>{updateMaskActions();if($("aiConsent").checked)$("aiStatus").textContent="Consent recorded for this page session. Your image is processed locally; the model will load only when you click Detect person locally.";});
 $("aiThreshold").addEventListener("input",()=>{if(!aiMaskData)return;$("aiThresholdValue").textContent=$("aiThreshold").value+"%";redrawMaskStrokes();scheduleRender(false,true);});
 $("aiThreshold").addEventListener("change",()=>{if(!aiMaskData)return;maskRevision++;pushHistory();scheduleRender(false,false);});
 $("maskFeather").addEventListener("input",()=>{$("maskFeatherValue").textContent=$("maskFeather").value+" px";scheduleRender(false,true);});
