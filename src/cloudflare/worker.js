@@ -1,18 +1,17 @@
 /**
- * ZERO Cloudflare read-only control-plane Worker.
- * Public endpoints expose only non-sensitive runtime capability status.
- * No media upload, inference, queue, storage, or paid-service binding exists.
+ * ZERO Cloudflare Worker: read-only control API plus local-first static UI.
+ * Media stays in the browser. No upload, inference, queue, or storage binding exists.
  */
 const SERVICE = "zero-creative-studio";
 const STATUS = Object.freeze({
   project: "ZERO Creative Studio",
   service: SERVICE,
   mode: "rp0",
-  deployment: "starter-not-deployed",
+  deployment: "preview",
   cloud_inference_enabled: false,
   private_inference_enabled: false,
   media_upload_enabled: false,
-  note: "Control-plane scaffold only; no inference worker is connected."
+  note: "Local-first UI and control API only; no inference worker is connected."
 });
 
 function json(body, status = 200) {
@@ -27,9 +26,9 @@ function json(body, status = 200) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method !== "GET") {
+    if (request.method !== "GET" && request.method !== "HEAD") {
       return json({ error: "method_not_allowed" }, 405);
     }
     if (url.pathname === "/healthz") {
@@ -37,6 +36,9 @@ export default {
     }
     if (url.pathname === "/api/status") {
       return json(STATUS);
+    }
+    if (env?.ASSETS && typeof env.ASSETS.fetch === "function") {
+      return env.ASSETS.fetch(request);
     }
     return json({ error: "not_found" }, 404);
   }
