@@ -55,12 +55,13 @@ test("static dashboard and photo editor requests are served by the asset binding
   assert.equal(await editor.text(), "static:/editor.html");
 });
 
-test("non-GET/HEAD requests are rejected and unknown routes return 404", async () => {
+test("non-GET/HEAD requests are rejected and unknown routes return JSON 404", async () => {
   const methodResponse = await worker.fetch(new Request("https://zero.test/healthz", { method: "POST" }), { ASSETS: assets });
   assert.equal(methodResponse.status, 405);
   assert.deepEqual(await methodResponse.json(), { error: "method_not_allowed" });
 
   const routeResponse = await worker.fetch(new Request("https://zero.test/not-found"), { ASSETS: assets });
   assert.equal(routeResponse.status, 404);
-  assert.equal(await routeResponse.text(), "Not Found");
+  assert.match(routeResponse.headers.get("content-type"), /application\/json/);
+  assert.deepEqual(await routeResponse.json(), { error: "not_found" });
 });
