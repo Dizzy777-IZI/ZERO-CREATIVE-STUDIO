@@ -744,7 +744,7 @@ function maskPointFromEvent(event){
 }
 canvas.addEventListener("pointerdown",event=>{
  if(!maskToolActive()||!previewImage||!maskCanvas||event.button!==0)return;
- if(maskStrokes.length>=MAX_MASK_STROKES){toast("Batas 250 sapuan tercapai. Undo beberapa sapuan terlebih dahulu.");return;}
+ if(maskStrokes.length>=MAX_MASK_STROKES){toast("Batas 120 sapuan tercapai. Undo beberapa sapuan terlebih dahulu.");return;}
  const point=maskPointFromEvent(event),bounds=canvas.getBoundingClientRect();
  const radius=Math.max(1,(+$("brushSize").value/2)*maskCanvas.width/Math.max(1,bounds.width));
  const requestedErase=$("maskMode").value==="erase";
@@ -775,11 +775,14 @@ canvas.addEventListener("pointerup",finishMaskPaint);
 canvas.addEventListener("pointercancel",finishMaskPaint);
 $("brushSize").addEventListener("input",()=>{$("brushSizeValue").textContent=$("brushSize").value+" px";});
 $("maskOverlay").addEventListener("change",()=>scheduleRender(false,false));
+$("aiSegment").addEventListener("click",runLocalPersonSegmentation);
+$("aiThreshold").addEventListener("input",()=>{if(!aiMaskData)return;$("aiThresholdValue").textContent=$("aiThreshold").value+"%";redrawMaskStrokes();scheduleRender(false,true);});
+$("aiThreshold").addEventListener("change",()=>{if(!aiMaskData)return;maskRevision++;pushHistory();scheduleRender(false,false);});
 $("maskFeather").addEventListener("input",()=>{$("maskFeatherValue").textContent=$("maskFeather").value+" px";scheduleRender(false,true);});
 $("maskFeather").addEventListener("change",()=>{pushHistory();scheduleRender(false,false);});
-$("invertMask").addEventListener("click",()=>{if(!maskStrokes.length)return;maskInverted=!maskInverted;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast(maskInverted?"Seleksi dibalik.":"Seleksi kembali ke sapuan kuas.");});
+$("invertMask").addEventListener("click",()=>{if(!hasMaskSelection())return;maskInverted=!maskInverted;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast(maskInverted?"Seleksi dibalik.":"Seleksi kembali ke sapuan kuas.");});
 $("applyMask").addEventListener("click",()=>{
- if(!maskStrokes.length)return;
+ if(!hasMaskSelection())return;
  maskApplied=true;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast("Latar di luar seleksi menjadi transparan.");
 });
 $("restoreMask").addEventListener("click",()=>{
@@ -787,8 +790,8 @@ $("restoreMask").addEventListener("click",()=>{
  maskApplied=false;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast("Tampilan latar asli dipulihkan.");
 });
 $("clearMask").addEventListener("click",()=>{
- if(!maskStrokes.length)return;
- maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();scheduleRender(false,false);pushHistory();toast("Seleksi mask dihapus.");
+ if(!hasMaskSelection())return;
+ maskStrokes=[];aiMaskData=null;maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();updateMaskActions();scheduleRender(false,false);pushHistory();toast("Seleksi mask dihapus.");
 });
 document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>{
  document.querySelectorAll(".tooltab").forEach(x=>x.classList.toggle("active",x===b));
@@ -863,7 +866,7 @@ window.addEventListener("beforeunload",e=>{
 window.addEventListener("pagehide",e=>{
  loadSequence++;
  if(framePending){cancelAnimationFrame(framePending);framePending=0;}
- if(!e.persisted&&previewImage&&typeof previewImage.close==="function")previewImage.close();
+ if(!e.persisted){if(segmenterWorker){try{segmenterWorker.postMessage({type:"DISPOSE"});segmenterWorker.terminate();}catch{}segmenterWorker=null;}if(previewImage&&typeof previewImage.close==="function")previewImage.close();}
 });
 async function runEditorSelfTest(){
  const checks=[];
