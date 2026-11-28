@@ -4,7 +4,14 @@ import { Script } from "node:vm";
 import { test } from "node:test";
 
 const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta.url), "utf8");
+const wrangler = await readFile(new URL("../wrangler.toml", import.meta.url), "utf8");
 const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+
+
+test("Cloudflare serves static assets directly and invokes Worker first only for API and health routes", () => {
+  assert.match(wrangler, /run_worker_first\s*=\s*\[\s*"\\/healthz"\s*,\s*"\\/api\/\*"\s*\]/);
+  assert.doesNotMatch(wrangler, /run_worker_first\s*=\s*true/);
+});
 
 test("photo editor accepts local formats with explicit source-file limits", () => {
   assert.match(html, /input\.type\s*=\s*"file"/);
@@ -37,6 +44,10 @@ test("preview rendering and full-resolution export have hard memory bounds", () 
   assert.match(script, /MAX_OUTPUT_PIXELS\s*=\s*24000000/);
   assert.match(script, /PREVIEW_MAX_DIMENSION\s*=\s*1400/);
   assert.match(script, /PREVIEW_MAX_PIXELS\s*=\s*1600000/);
+  assert.match(script, /INTERACTIVE_PREVIEW_MAX_PIXELS\s*=\s*640000/);
+  assert.match(script, /INTERACTIVE_PREVIEW_MAX_DIMENSION\s*=\s*1000/);
+  assert.match(script, /scheduleRender\(false,true\)/);
+  assert.match(script, /scheduleRender\(false,false\)/);
   assert.match(script, /requestAnimationFrame/);
   assert.match(script, /resizeWidth/);
   assert.match(script, /PREVIEW_MAX_PIXELS/);
