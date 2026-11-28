@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="ZERO Creative Studio control-plane preview">
+  <meta name="description" content="ZERO Creative Studio dashboard and local-first photo editor preview">
   <title>ZERO Creative Studio</title>
   <style>
     :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#eef2ff;background:#0b1020}
@@ -14,23 +14,24 @@
     h1{font-size:clamp(2rem,7vw,3.5rem);margin:.5rem 0}
     p{color:#b8c4dc;line-height:1.65}.status{display:inline-block;padding:6px 10px;border-radius:99px;background:#26334b;color:#d7e4ff;font-size:.8rem}
     ul{padding-left:20px;color:#cbd5e1;line-height:1.9}.foot{border-top:1px solid #28334d;margin-top:24px;padding-top:16px;font-size:.85rem}
+    a{color:#a8c7ff}
   </style>
 </head>
 <body>
   <main>
     <div class="eyebrow">CREATIVE SYSTEM / CONTROL PLANE</div>
     <h1>ZERO</h1>
-    <p>Fondasi dashboard ZERO Creative Studio. Ini adalah preview statis; belum terhubung ke akun Cloudflare atau API produksi.</p>
-    <span class="status">MODE Rp0 · INFERENCE NONAKTIF</span>
-    <p><a href="./editor.html">Buka Editor Foto Beta →</a> — koreksi dasar langsung di browser, tanpa upload ke server.</p>
+    <p>Dashboard preview ZERO Creative Studio. Editor foto berjalan langsung di browser; file sumber tidak diunggah ke server ZERO atau layanan AI.</p>
+    <span class="status">MODE Rp0 · AI INFERENCE NONAKTIF</span>
+    <p><a href="/editor.html">Buka Editor Foto Beta →</a> — brightness, contrast, saturation, rotasi, dan ekspor PNG.</p>
     <h2>Kapabilitas saat ini</h2>
     <ul>
-      <li>Dashboard statis: disiapkan untuk Cloudflare Pages.</li>
-      <li>API status: starter Worker tersedia, belum di-deploy.</li>
-      <li>Cloud AI dan private inference: nonaktif.</li>
-      <li>Upload media: nonaktif; tidak ada fallback otomatis.</li>
+      <li>Dashboard dan editor foto lokal disajikan melalui Cloudflare Worker.</li>
+      <li>API status tersedia di <code>/api/status</code>.</li>
+      <li>Cloud AI dan private inference belum terhubung.</li>
+      <li>Upload media ke server dinonaktifkan; tidak ada fallback otomatis.</li>
     </ul>
-    <p class="foot">ZERO · Privacy-first development · Deployment requires owner-controlled Cloudflare account setup.</p>
+    <p class="foot">ZERO · Privacy-first preview · Fitur AI dan editor video belum aktif.</p>
   </main>
 </body>
 </html>
