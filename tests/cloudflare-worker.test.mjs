@@ -12,8 +12,21 @@ const sandbox = { URL, Response };
 runInNewContext(moduleSource, sandbox);
 const worker = sandbox.__worker;
 
+const assets = {
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+    if (path === "/" || path === "/index.html" || path === "/editor.html") {
+      return new Response("static:" + path, {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" }
+      });
+    }
+    return new Response("Not Found", { status: 404 });
+  }
+};
+
 test("GET /healthz returns the configured Worker service name", async () => {
-  const response = await worker.fetch(new Request("https://zero.test/healthz"));
+  const response = await worker.fetch(new Request("https://zero.test/healthz"), { ASSETS: assets });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /application\/json/);
   assert.equal(response.headers.get("cache-control"), "no-store");
@@ -21,7 +34,7 @@ test("GET /healthz returns the configured Worker service name", async () => {
 });
 
 test("GET /api/status reports fail-closed Rp0 capabilities", async () => {
-  const response = await worker.fetch(new Request("https://zero.test/api/status"));
+  const response = await worker.fetch(new Request("https://zero.test/api/status"), { ASSETS: assets });
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.service, "zero-creative-studio");
@@ -31,12 +44,23 @@ test("GET /api/status reports fail-closed Rp0 capabilities", async () => {
   assert.equal(body.media_upload_enabled, false);
 });
 
-test("non-GET requests are rejected and unknown routes return 404", async () => {
-  const methodResponse = await worker.fetch(new Request("https://zero.test/healthz", { method: "POST" }));
+test("static dashboard and photo editor requests are served by the asset binding", async () => {
+  const home = await worker.fetch(new Request("https://zero.test/"), { ASSETS: assets });
+  assert.equal(home.status, 200);
+  assert.match(home.headers.get("content-type"), /text\/html/);
+  assert.equal(await home.text(), "static:/");
+
+  const editor = await worker.fetch(new Request("https://zero.test/editor.html"), { ASSETS: assets });
+  assert.equal(editor.status, 200);
+  assert.equal(await editor.text(), "static:/editor.html");
+});
+
+test("non-GET/HEAD requests are rejected and unknown routes return 404", async () => {
+  const methodResponse = await worker.fetch(new Request("https://zero.test/healthz", { method: "POST" }), { ASSETS: assets });
   assert.equal(methodResponse.status, 405);
   assert.deepEqual(await methodResponse.json(), { error: "method_not_allowed" });
 
-  const routeResponse = await worker.fetch(new Request("https://zero.test/not-found"));
+  const routeResponse = await worker.fetch(new Request("https://zero.test/not-found"), { ASSETS: assets });
   assert.equal(routeResponse.status, 404);
-  assert.deepEqual(await routeResponse.json(), { error: "not_found" });
+  assert.equal(await routeResponse.text(), "Not Found");
 });
