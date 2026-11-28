@@ -141,6 +141,15 @@ test("fixed-ratio crop can be repositioned by dragging the canvas and persists i
   assert.match(script, /return\{x:0,y:maxY\*cropPanY,w,h:nh,maxX:0,maxY\}/);
 });
 
+test("crop mode displays a proportional composition guide over the canvas", () => {
+  assert.match(html, /<div class="crop-frame" id="cropFrame" hidden aria-hidden="true"><\/div>/);
+  assert.match(html, /\.crop-frame\{position:absolute;z-index:2;pointer-events:none/);
+  assert.match(html, /\.crop-frame\[hidden\]\{display:none\}/);
+  assert.ok(script.includes('const frame=$("cropFrame")'));
+  assert.ok(script.includes('Crop frame guide appears while crop mode is active'));
+  assert.ok(script.includes('Crop frame guide hides when crop is reset'));
+});
+
 test("inline photo editor script parses without syntax errors", () => {
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
