@@ -29,7 +29,7 @@ test("photo editor provides adjustments, creative looks, transforms, history and
   for (const control of [
     "brightness", "contrast", "saturation", "warmth", "sharpness", "sharpen",
     "highlights", "shadows", "tint", "maskMode", "brushSize", "maskOverlay",
-    "applyMask", "restoreMask", "clearMask",
+    "applyMask", "restoreMask", "clearMask", "invertMask", "maskFeather",
     "highlights", "shadows", "tint",
     "rotateLeft", "rotateRight", "flipH", "flipV", "applySize",
     "undo", "redo", "download", "format", "quality"
@@ -118,7 +118,9 @@ test("browser self-test mode covers local load, adjustments, transforms, sharpen
     "Tint grading shifts image color", "Undo restores previous tint setting", "Redo reapplies tint setting",
     "Manual brush creates a local subject mask", "Remove background applies transparency outside the selection",
     "Undo restores the un-applied manual mask", "Redo reapplies transparent background masking",
-    "Changing framing clears an incompatible mask"
+    "Changing framing clears an incompatible mask",
+    "Invert selection reverses transparent and protected areas",
+    "Invert selection can be toggled back", "Edge feather is applied to the effective selection"
   ]) assert.ok(script.includes(check), "missing self-test check: " + check);
   assert.match(script, /new URLSearchParams\(location\.search\)\.get\("selftest"\)==="1"/);
 });
@@ -255,6 +257,22 @@ test("JPEG background is composited behind the mask so transparent pixels remain
   assert.match(script, /getContext\("2d",\{alpha:true\}\)/);
   assert.match(script, /if\(!original\)applyMaskToContext\(c,w,h\)/);
   assert.match(script, /globalCompositeOperation="destination-over";c\.fillStyle=background/);
+});
+
+
+test("background mask supports selection inversion, inverted brush semantics and soft edges", () => {
+  assert.match(html, /id="invertMask"/);
+  assert.match(html, /id="maskFeather"/);
+  assert.match(script, /maskInverted,maskFeather:\+\$\("maskFeather"\)\.value/);
+  assert.match(script, /function renderEffectiveMask\(w,h\)/);
+  assert.match(script, /effective\.filter=feather>0\?"blur\("\+feather\+"px\)":"none"/);
+  assert.match(script, /if\(maskInverted\)\{\s*effective\.fillStyle="#fff";effective\.fillRect\(0,0,w,h\);\s*effective\.globalCompositeOperation="destination-out"/);
+  assert.match(script, /mode:\(maskInverted\?!requestedErase:requestedErase\)\?"erase":"add"/);
+  assert.match(script, /maskInverted=!maskInverted/);
+  assert.match(script, /maskInverted=!!s\.maskInverted/);
+  assert.match(script, /\$\("maskFeather"\)\.value=s\.maskFeather\?\?0/);
+  assert.ok(script.includes("Invert selection reverses transparent and protected areas"));
+  assert.ok(script.includes("Edge feather is applied to the effective selection"));
 });
 
 test("inline photo editor script parses without syntax errors", () => {
