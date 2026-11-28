@@ -977,6 +977,15 @@ async function runEditorSelfTest(){
   verify("Redo reapplies tint setting",+$("tint").value===-42&&hasPixels());
   const backgroundTab=document.querySelector('[data-panel="background"]');
   backgroundTab.click();await afterFrame();
+  const previousAIData=aiMaskData,previousAIThreshold=$("aiThreshold").value;
+  const syntheticConfidence=new Uint8Array(24);
+  syntheticConfidence[8]=255;syntheticConfidence[9]=255;syntheticConfidence[14]=255;syntheticConfidence[15]=255;
+  aiMaskData={width:6,height:4,data:syntheticConfidence};$("aiThreshold").value=45;maskRevision++;redrawMaskStrokes();await afterFrame();
+  const aiMaskPixels=maskCanvas.getContext("2d").getImageData(0,0,maskCanvas.width,maskCanvas.height).data;
+  const aiCenterAlpha=maskCanvas.getContext("2d").getImageData(Math.floor(maskCanvas.width/2),Math.floor(maskCanvas.height/2),1,1).data[3];
+  verify("AI confidence mask is composited into the editable selection",hasMaskSelection()&&aiCenterAlpha>0);
+  verify("AI confidence threshold preserves soft selection edges",confidenceToAlpha(0,45)===0&&confidenceToAlpha(255,45)===255&&confidenceToAlpha(128,45)>0);
+  aiMaskData=previousAIData;$("aiThreshold").value=previousAIThreshold;maskRevision++;redrawMaskStrokes();
   $("brushSize").value=64;
   const maskBounds=canvas.getBoundingClientRect(),maskX=maskBounds.left+maskBounds.width/2,maskY=maskBounds.top+maskBounds.height/2;
   const maskInit={bubbles:true,pointerId:9,pointerType:"mouse",isPrimary:true,button:0,clientX:maskX,clientY:maskY};
