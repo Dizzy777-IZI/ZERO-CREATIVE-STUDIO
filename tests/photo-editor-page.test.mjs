@@ -7,6 +7,7 @@ import { test } from "node:test";
 const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta.url), "utf8");
 const wrangler = await readFile(new URL("../wrangler.toml", import.meta.url), "utf8");
 const securityHeaders = await readFile(new URL("../web/cloudflare/_headers", import.meta.url), "utf8");
+const localAIWorker = await readFile(new URL("../web/cloudflare/ai/segmenter.worker.js", import.meta.url), "utf8");
 const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 
 
@@ -170,7 +171,11 @@ test("static assets receive a strict CSP and browser privacy protections", () =>
   assert.ok(policy.includes("'sha256-" + scriptHash + "'"), "CSP hash must match the exact inline editor script");
   const scriptDirective = policy.match(/(?:^|;\s*)script-src\s+([^;]+)/)?.[1] || "";
   assert.match(scriptDirective, /'self'/);
-  assert.doesNotMatch(scriptDirective, /unsafe-inline|unsafe-eval/);
+  assert.doesNotMatch(scriptDirective, /'unsafe-inline'|'unsafe-eval'/);
+  assert.match(scriptDirective, /https:\/\/cdn\.jsdelivr\.net/);
+  assert.match(scriptDirective, /'wasm-unsafe-eval'/);
+  assert.match(policy, /connect-src 'self' https:\/\/cdn\.jsdelivr\.net https:\/\/storage\.googleapis\.com/);
+  assert.doesNotMatch(policy, /https:\/\/\*/);
   assert.match(policy, /img-src[^;]*blob:/);
   assert.match(policy, /media-src[^;]*blob:/);
   assert.match(policy, /connect-src 'self'/);
@@ -252,6 +257,8 @@ test("manual background masking paints reversible vector strokes and exports tru
   assert.ok(script.includes("Undo restores the un-applied manual mask"));
   assert.ok(script.includes("Redo reapplies transparent background masking"));
   assert.ok(script.includes("Changing framing clears an incompatible mask"));
+  assert.ok(script.includes("AI confidence mask is composited into the editable selection"));
+  assert.ok(script.includes("AI confidence threshold preserves soft selection edges"));
 });
 
 test("JPEG background is composited behind the mask so transparent pixels remain white", () => {
@@ -274,6 +281,40 @@ test("background mask supports selection inversion, inverted brush semantics and
   assert.match(script, /\$\("maskFeather"\)\.value=s\.maskFeather\?\?0/);
   assert.ok(script.includes("Invert selection reverses transparent and protected areas"));
   assert.ok(script.includes("Edge feather is applied to the effective selection"));
+});
+
+
+test("local person segmentation is lazy, pinned, hash-verified and isolated from photo uploads", () => {
+  for (const control of ["aiSegment", "aiStatus", "aiThreshold"]) {
+    assert.match(html, new RegExp('id="' + control + '"'));
+  }
+  assert.match(script, /function runLocalPersonSegmentation\\(\\)/);
+  assert.match(script, /new Worker\\("\\/ai\\/segmenter\\.worker\\.js",\\{type:"module"/);
+  assert.match(script, /worker\\.postMessage\\(\\{type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap\\},\\[bitmap\\]\\)/);
+  assert.match(script, /function drawSegmentationInput\\(target\\)/);
+  assert.match(script, /if\\(message\\.photoSequence!==loadSequence\\)/);
+  assert.match(script, /function confidenceToAlpha\\(value,threshold\\)/);
+  assert.match(script, /function drawAIMaskBase\\(context\\)/);
+  assert.match(script, /aiMaskData=s\\.aiMaskData\\|\\|null/);
+  assert.match(script, /delete copy\\.aiMaskData/);
+
+  assert.match(localAIWorker, /@mediapipe\\/tasks-vision@1\\.2\\.3\\/vision_bundle\\.mjs/);
+  assert.match(localAIWorker, /@mediapipe\\/tasks-vision@1\\.2\\.3\\/wasm/);
+  assert.match(localAIWorker, /const MODEL_BYTES = 249537/);
+  assert.match(localAIWorker, /const MODEL_SHA256 = "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b"/);
+  assert.match(localAIWorker, /image_segmenter\\/selfie_segmenter\\/float16\\/1\\/selfie_segmenter\\.tflite/);
+  assert.match(localAIWorker, /credentials: "omit"/);
+  assert.match(localAIWorker, /method: "GET"/);
+  assert.match(localAIWorker, /mode: "cors"/);
+  assert.match(localAIWorker, /referrerPolicy: "no-referrer"/);
+  assert.match(localAIWorker, /crypto\\.subtle\\.digest\\("SHA-256", modelBuffer\\)/);
+  assert.match(localAIWorker, /ImageSegmenter\\.createFromOptions/);
+  assert.match(localAIWorker, /delegate: "CPU"/);
+  assert.match(localAIWorker, /outputConfidenceMasks: true/);
+  assert.match(localAIWorker, /confidenceMasks/);
+  assert.match(localAIWorker, /type: "RESULT", id, photoSequence/);
+  assert.doesNotMatch(localAIWorker, /XMLHttpRequest|WebSocket|sendBeacon|FormData/);
+  assert.doesNotMatch(localAIWorker, /method: "POST"|method: 'POST'/);
 });
 
 test("inline photo editor script parses without syntax errors", () => {
