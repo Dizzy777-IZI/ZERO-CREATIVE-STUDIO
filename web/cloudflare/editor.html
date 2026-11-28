@@ -36,7 +36,7 @@ canvas{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;he
   <button class="tooltab" data-panel="transform"><span>⤢</span> Transform</button>
   <button class="tooltab" data-panel="export"><span>⇧</span> Export</button>
  </nav>
- <div class="dropzone" id="dropzone"><div class="drop-icon">↥</div><strong>Drop your image here</strong><p>JPG, PNG, WebP, AVIF<br>Maximum 30 MB · 40 MP</p><button class="btn" id="browse">Choose image</button></div>
+ <div class="dropzone" id="dropzone"><div class="drop-icon">↥</div><strong>Drop your image here</strong><p>JPG, PNG, WebP, AVIF<br>Maximum 30 MB · 40 MP source</p><button class="btn" id="browse">Choose image</button></div>
  <div class="file-card"><div class="section-label">Current file</div><div class="file-title" id="fileName">No image selected</div><div class="file-meta" id="fileMeta">Your original stays on this device.</div></div>
  <p class="hint">ZERO runs edits in your browser. Your photos are never uploaded.</p>
 </aside>
@@ -77,7 +77,7 @@ canvas{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;he
   <h2 class="panel-heading">Composition</h2><p class="panel-desc">Rotate, flip, crop to a useful aspect ratio or resize the output.</p>
   <div class="section-label">Rotate & flip</div><div class="action-grid"><button class="btn" id="rotateLeft">↶ Rotate 90°</button><button class="btn" id="rotateRight">↷ Rotate 90°</button><button class="btn" id="flipH">↔ Flip horizontal</button><button class="btn" id="flipV">↕ Flip vertical</button></div>
   <div class="divider"></div><div class="section-label">Crop ratio</div><div class="preset-grid"><button class="preset crop" data-ratio="free">Free</button><button class="preset crop" data-ratio="1">1:1 Square</button><button class="preset crop" data-ratio="0.8">4:5 Portrait</button><button class="preset crop" data-ratio="1.7777778">16:9 Wide</button><button class="preset crop" data-ratio="1.5">3:2 Photo</button><button class="preset crop" data-ratio="1.3333333">4:3 Classic</button></div>
-  <div class="divider"></div><div class="section-label">Output dimensions</div><div class="field-row"><div class="field"><label for="outWidth">Width (px)</label><input id="outWidth" type="number" min="1" max="8000" value="0"></div><div class="field"><label for="outHeight">Height (px)</label><input id="outHeight" type="number" min="1" max="8000" value="0"></div></div><label class="checkrow"><input type="checkbox" id="lockRatio" checked> Lock aspect ratio</label><button class="btn" id="applySize" style="width:100%">Apply dimensions</button>
+  <div class="divider"></div><div class="section-label">Output dimensions (max. 24 MP)</div><div class="field-row"><div class="field"><label for="outWidth">Width (px)</label><input id="outWidth" type="number" min="1" max="8000" value="0"></div><div class="field"><label for="outHeight">Height (px)</label><input id="outHeight" type="number" min="1" max="8000" value="0"></div></div><label class="checkrow"><input type="checkbox" id="lockRatio" checked> Lock aspect ratio</label><button class="btn" id="applySize" style="width:100%">Apply dimensions</button>
   <p class="hint">Crop ratio trims evenly from the center. Original image remains untouched.</p>
  </section>
  <section class="panel" id="panel-export">
@@ -86,59 +86,311 @@ canvas{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;he
   <div class="control"><div class="control-head"><label for="quality">Quality</label><output class="val" id="qualityValue">92%</output></div><input id="quality" type="range" min="50" max="100" value="92"></div></div>
   <div class="export-card"><strong>Export summary</strong><p class="hint" id="exportSummary">No image loaded yet.</p></div>
   <button class="btn primary" id="download" style="width:100%;padding:12px">Download image ↗</button>
-  <p class="hint">PNG ignores the quality setting. Transparent pixels are preserved in PNG; JPEG uses a solid background.</p>
+  <p class="hint">PNG ignores the quality setting. Transparent pixels are preserved in PNG; JPEG uses a white background. Browser preview is capped near 1.6 MP and export at 24 MP / 6,000 px to reduce memory use.</p>
  </section>
 </aside>
 </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script>
-(()=>{"use strict";
-const MAX_BYTES=30*1024*1024,MAX_PIXELS=40000000,MAX_OUTPUT=8000;
-const $=id=>document.getElementById(id),canvas=$("preview"),ctx=canvas.getContext("2d",{alpha:true});
+<script>(()=>{"use strict";
+const MAX_BYTES=30*1024*1024;
+const MAX_INPUT_PIXELS=40000000;
+const MAX_OUTPUT_DIMENSION=6000;
+const MAX_OUTPUT_PIXELS=24000000;
+const PREVIEW_MAX_DIMENSION=1400;
+const PREVIEW_MAX_PIXELS=1600000;
+const $=id=>document.getElementById(id);
+const canvas=$("preview");
+const ctx=canvas.getContext("2d",{alpha:true});
 const sliders=["brightness","contrast","saturation","warmth","sharpness"];
 const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0};
-let image=null,objectUrl=null,file=null,rotation=0,flipH=false,flipV=false,cropRatio=null,outW=0,outH=0,history=[],historyIndex=-1,rendering=false,look="original",lookIntensity=100;
-function state(){return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,outW,outH,look,lookIntensity}}
-function applyState(s){sliders.forEach(k=>$(k).value=s.values[k]);rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;$("outWidth").value=outW||"";$("outHeight").value=outH||"";$("fade").value=lookIntensity;updateLabels();render()}
-function pushHistory(){if(!image)return;const s=state();if(historyIndex>=0&&JSON.stringify(history[historyIndex])===JSON.stringify(s))return;history=history.slice(0,historyIndex+1);history.push(s);if(history.length>40)history.shift();historyIndex=history.length-1;historyButtons()}
-function historyButtons(){$("undo").disabled=historyIndex<=0;$("redo").disabled=historyIndex>=history.length-1}
-function toast(s){const t=$("toast");t.textContent=s;t.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400)}
-function announce(s){$("status").textContent=s}
-function updateLabels(){sliders.forEach(k=>{const v=+$(k).value;$(k+"Value").textContent=k==="sharpness"?v+" px":k==="warmth"?(v>0?"+":"")+v:v+"%"});$("fadeValue").textContent=lookIntensity+"%";$("qualityValue").textContent=$("quality").value+"%"}
-function cropRect(w,h){if(!cropRatio)return{x:0,y:0,w,h};const ratio=cropRatio,source=w/h;if(source>ratio){const nw=h*ratio;return{x:(w-nw)/2,y:0,w:nw,h}}const nh=w/ratio;return{x:0,y:(h-nh)/2,w,h:nh}}
-function filters(){const b=+$("brightness").value,c=+$("contrast").value,s=+$("saturation").value,sh=+$("sharpness").value,t=lookIntensity/100;let extra="";if(look==="cinema")extra="contrast("+(100+18*t)+"%) saturate("+(100-18*t)+"%) brightness("+(100-4*t)+"%)";if(look==="vivid")extra="contrast("+(100+8*t)+"%) saturate("+(100+45*t)+"%)";if(look==="mono")extra="grayscale("+(100*t)+"%) contrast("+(100+12*t)+"%)";if(look==="warm")extra="sepia("+(24*t)+"%) saturate("+(100+12*t)+"%) brightness("+(100+3*t)+"%)";if(look==="soft")extra="contrast("+(100-12*t)+"%) saturate("+(100-12*t)+"%) brightness("+(100+4*t)+"%)";const base="brightness("+b+"%) contrast("+c+"%) saturate("+s+"%)";return [base,extra,"blur("+sh+"px)"].filter(Boolean).join(" ")}
-function render(original=false){if(!image||rendering)return;rendering=true;try{const iw=image.naturalWidth,ih=image.naturalHeight,r=cropRect(iw,ih),rot=Math.abs(rotation%180)===90;let sw=Math.max(1,Math.round(r.w)),sh=Math.max(1,Math.round(r.h));let w=rot?sh:sw,h=rot?sw:sh;if(outW&&outH){w=outW;h=outH}else if(outW){h=Math.max(1,Math.round(w*outW/(rot?sh:sw)));w=outW}else if(outH){w=Math.max(1,Math.round(h*outH/(rot?sw:sh)));h=outH}
-if(w>MAX_OUTPUT||h>MAX_OUTPUT||w*h>MAX_PIXELS){announce("Ukuran output terlalu besar. Maksimal 8.000 px per sisi dan 40 MP.");rendering=false;return}
-canvas.width=w;canvas.height=h;ctx.save();ctx.clearRect(0,0,w,h);ctx.translate(w/2,h/2);ctx.rotate(rotation*Math.PI/180);ctx.scale(flipH?-1:1,flipV?-1:1);ctx.filter=original?"none":filters();ctx.drawImage(image,r.x,r.y,r.w,r.h,-(rot?h:w)/2,-(rot?w:h)/2,rot?h:w,rot?w:h);ctx.restore();const warm=+$("warmth").value;if(!original&&warm){ctx.save();ctx.globalCompositeOperation="soft-light";ctx.fillStyle=warm>0?"rgba(255,150,65,"+(Math.abs(warm)/350)+")":"rgba(80,150,255,"+(Math.abs(warm)/400)+")";ctx.fillRect(0,0,w,h);ctx.restore()}
-$("dimensions").textContent=w+" × "+h+" px";$("canvasMeta").textContent=file?file.name+" · "+w+" × "+h+" px":"Ready";$("exportSummary").textContent=w+" × "+h+" px · "+$("format").selectedOptions[0].textContent;$("outWidth").value=w;$("outHeight").value=h;updateLabels()
-}catch(e){announce("Render gagal: "+e.message)}finally{rendering=false}}
-function loadFile(f){if(!f)return;if(!/^image\/(jpeg|png|webp|avif)$/.test(f.type)){toast("Pilih file JPEG, PNG, WebP, atau AVIF.");return}if(f.size>MAX_BYTES){toast("File melebihi batas 30 MB.");return}const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{if(img.naturalWidth*img.naturalHeight>MAX_PIXELS){URL.revokeObjectURL(url);toast("Resolusi terlalu besar (maksimal 40 MP).");return}if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=url;image=img;file=f;rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;sliders.forEach(k=>$(k).value=defaults[k]);$("fade").value=100;$("empty").hidden=true;canvas.hidden=false;$("compare").disabled=false;$("fileName").textContent=f.name;$("fileMeta").textContent=(f.size/1024/1024).toFixed(2)+" MB · "+img.naturalWidth+" × "+img.naturalHeight+" px";$("outWidth").value=img.naturalWidth;$("outHeight").value=img.naturalHeight;history=[];historyIndex=-1;render();pushHistory();announce("Image loaded locally. Ready to edit.");toast("Image opened successfully.")};img.onerror=()=>{URL.revokeObjectURL(url);toast("Browser tidak dapat membaca file ini.")};img.src=url}
-function update(){if(!image)return;render();pushHistory()}
-function resetAll(){if(!image)return;sliders.forEach(k=>$(k).value=defaults[k]);rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;$("fade").value=100;render();pushHistory();toast("All edits reset.")}
-function exportImage(){if(!image){toast("Open an image first.");return}const type=$("format").value,q=+$("quality").value/100;canvas.toBlob(blob=>{if(!blob){toast("Export failed. Try a smaller image.");return}const url=URL.createObjectURL(blob),a=document.createElement("a"),ext=type==="image/jpeg"?"jpg":type==="image/webp"?"webp":"png";a.href=url;a.download="zero-studio-"+Date.now()+"."+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Export ready · "+(blob.size/1024/1024).toFixed(2)+" MB");announce("Exported "+ext.toUpperCase()+" successfully.")},type,type==="image/png"?undefined:q)}
-$("browse").onclick=$("startUpload").onclick=()=>$("photo").click();
-const input=document.createElement("input");input.type="file";input.id="photo";input.accept="image/jpeg,image/png,image/webp,image/avif";input.hidden=true;document.body.appendChild(input);input.addEventListener("change",()=>{loadFile(input.files[0]);input.value=""});
-$("dropzone").addEventListener("click",e=>{if(e.target.closest("button"))return;input.click()});["dragenter","dragover"].forEach(ev=>$("stage").addEventListener(ev,e=>{e.preventDefault();$("stage").style.borderColor="#a9f36c"}));["dragleave","drop"].forEach(ev=>$("stage").addEventListener(ev,e=>{e.preventDefault();$("stage").style.borderColor=""}));$("stage").addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));["dragenter","dragover"].forEach(ev=>$("dropzone").addEventListener(ev,e=>{e.preventDefault();$("dropzone").style.borderColor="#a9f36c"}));["dragleave","drop"].forEach(ev=>$("dropzone").addEventListener(ev,e=>{e.preventDefault();$("dropzone").style.borderColor=""}));$("dropzone").addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));
-document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tooltab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id==="panel-"+b.dataset.panel))}));
-sliders.forEach(k=>$(k).addEventListener("input",()=>{render();if(k!=="sharpness")$(k+"Value").textContent=$(k).value+(k==="warmth"?"":"%")}));sliders.forEach(k=>$(k).addEventListener("change",pushHistory));
-document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{if(!image)return;look=b.dataset.preset;sliders.forEach(k=>$(k).value=defaults[k]);document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x===b));update();toast(b.textContent.trim()+" look applied.")}));
-$("fade").addEventListener("input",()=>{lookIntensity=+$("fade").value;render()});$("fade").addEventListener("change",pushHistory);
-$("rotateLeft").onclick=()=>{if(image){rotation=(rotation+270)%360;update()}};$("rotateRight").onclick=()=>{if(image){rotation=(rotation+90)%360;update()}};$("flipH").onclick=()=>{if(image){flipH=!flipH;update()}};$("flipV").onclick=()=>{if(image){flipV=!flipV;update()}};
-document.querySelectorAll(".crop").forEach(b=>b.onclick=()=>{if(!image)return;cropRatio=b.dataset.ratio==="free"?null:+b.dataset.ratio;document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",x===b));outW=0;outH=0;update()});
-$("applySize").onclick=()=>{if(!image)return;const w=+$("outWidth").value,h=+$("outHeight").value;if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>MAX_OUTPUT||h>MAX_OUTPUT||w*h>MAX_PIXELS){toast("Dimensions invalid. Use 1–8000 px and max 40 MP.");return}outW=w;outH=h;update();toast("Output dimensions applied.")};
-$("lockRatio").addEventListener("change",()=>{if(!$("lockRatio").checked||!image)return;const w=+$("outWidth").value,h=+$("outHeight").value;if(w&&h){$("outHeight").value=Math.round(w*canvas.height/canvas.width)}});
-$("auto").onclick=()=>{if(!image)return;$("brightness").value=104;$("contrast").value=108;$("saturation").value=108;$("warmth").value=2;update();toast("Auto tone preset applied.")};
-$("resetAdjust").onclick=()=>{sliders.forEach(k=>$(k).value=defaults[k]);update()};
-$("resetAll").onclick=resetAll;$("download").onclick=$("topExport").onclick=exportImage;
-$("undo").onclick=()=>{if(historyIndex>0){historyIndex--;applyState(history[historyIndex]);historyButtons();toast("Undo")}};$("redo").onclick=()=>{if(historyIndex<history.length-1){historyIndex++;applyState(history[historyIndex]);historyButtons();toast("Redo")}};
-$("compare").addEventListener("pointerdown",()=>{if(image)render(true)});["pointerup","pointerleave","pointercancel"].forEach(ev=>$("compare").addEventListener(ev,()=>render()));
-$("fit").onclick=()=>{if(image){canvas.style.maxHeight="calc(100vh - 230px)";toast("Canvas fitted to workspace.")}};
-$("quality").oninput=updateLabels;$("format").onchange=()=>{$("quality").disabled=$("format").value==="image/png";updateLabels()};
-document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();$("undo").click()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();$("redo").click()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();exportImage()}});
-window.addEventListener("beforeunload",()=>{if(objectUrl)URL.revokeObjectURL(objectUrl)});
+let image=null,objectUrl=null,file=null,rotation=0,flipH=false,flipV=false;
+let cropRatio=null,outW=0,outH=0,history=[],historyIndex=-1;
+let look="original",lookIntensity=100,framePending=0,pendingOriginal=false;
+let loadSequence=0,lastDimensionEdited="width",exporting=false;
+
+function state(){
+ return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,outW,outH,look,lookIntensity};
+}
+function cropRect(w,h){
+ if(!cropRatio)return{x:0,y:0,w,h};
+ const source=w/h;
+ if(source>cropRatio){const nw=h*cropRatio;return{x:(w-nw)/2,y:0,w:nw,h};}
+ const nh=w/cropRatio;return{x:0,y:(h-nh)/2,w,h:nh};
+}
+function baseSize(){
+ const r=cropRect(image.naturalWidth,image.naturalHeight);
+ return Math.abs(rotation%180)===90?{w:r.h,h:r.w}:{w:r.w,h:r.h};
+}
+function boundedSize(w,h){
+ const scale=Math.min(1,MAX_OUTPUT_DIMENSION/Math.max(w,h),Math.sqrt(MAX_OUTPUT_PIXELS/(w*h)));
+ return {w:Math.max(1,Math.floor(w*scale)),h:Math.max(1,Math.floor(h*scale)),scaled:scale<1};
+}
+function outputSize(){
+ const base=baseSize();
+ let w=base.w,h=base.h;
+ if(outW>0&&outH>0){w=outW;h=outH;}
+ else if(outW>0){w=outW;h=Math.max(1,Math.round(outW*base.h/base.w));}
+ else if(outH>0){h=outH;w=Math.max(1,Math.round(outH*base.w/base.h));}
+ return boundedSize(w,h);
+}
+function syncDimensionFields(){
+ if(!image)return;
+ const size=outputSize();
+ $("outWidth").value=size.w;
+ $("outHeight").value=size.h;
+}
+function filters(scale=1){
+ const b=+$("brightness").value,c=+$("contrast").value,s=+$("saturation").value,soft=+$("sharpness").value,t=lookIntensity/100;
+ let extra="";
+ if(look==="cinema")extra="contrast("+(100+18*t)+"%) saturate("+(100-18*t)+"%) brightness("+(100-4*t)+"%)";
+ if(look==="vivid")extra="contrast("+(100+8*t)+"%) saturate("+(100+45*t)+"%)";
+ if(look==="mono")extra="grayscale("+(100*t)+"%) contrast("+(100+12*t)+"%)";
+ if(look==="warm")extra="sepia("+(24*t)+"%) saturate("+(100+12*t)+"%) brightness("+(100+3*t)+"%)";
+ if(look==="soft")extra="contrast("+(100-12*t)+"%) saturate("+(100-12*t)+"%) brightness("+(100+4*t)+"%)";
+ const base="brightness("+b+"%) contrast("+c+"%) saturate("+s+"%)";
+ return [base,extra,"blur("+(soft*scale)+"px)"].filter(Boolean).join(" ");
+}
+function drawTo(target,original=false,background=null){
+ const size=outputSize();
+ const w=size.w,h=size.h;
+ if(!w||!h||w*h>MAX_OUTPUT_PIXELS||w>MAX_OUTPUT_DIMENSION||h>MAX_OUTPUT_DIMENSION)throw new Error("Output melewati batas aman 24 MP / 6.000 px.");
+ target.width=w;target.height=h;
+ const c=target.getContext("2d",{alpha:background===null});
+ if(!c)throw new Error("Canvas context tidak tersedia.");
+ c.save();
+ c.setTransform(1,0,0,1,0,0);
+ c.clearRect(0,0,w,h);
+ if(background){c.fillStyle=background;c.fillRect(0,0,w,h);}
+ const r=cropRect(image.naturalWidth,image.naturalHeight);
+ const rotated=Math.abs(rotation%180)===90;
+ c.translate(w/2,h/2);
+ c.rotate(rotation*Math.PI/180);
+ c.scale(flipH?-1:1,flipV?-1:1);
+ c.filter=original?"none":filters(1);
+ c.drawImage(image,r.x,r.y,r.w,r.h,-(rotated?h:w)/2,-(rotated?w:h)/2,rotated?h:w,rotated?w:h);
+ c.restore();
+ const warmth=+$("warmth").value;
+ if(!original&&warmth){
+  c.save();c.globalCompositeOperation="soft-light";
+  c.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
+  c.fillRect(0,0,w,h);c.restore();
+ }
+ return size;
+}
+function render(original=false){
+ if(!image)return;
+ try{
+  const size=outputSize();
+  const scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(size.w,size.h),Math.sqrt(PREVIEW_MAX_PIXELS/(size.w*size.h)));
+  const w=Math.max(1,Math.round(size.w*scale)),h=Math.max(1,Math.round(size.h*scale));
+  canvas.width=w;canvas.height=h;
+  const r=cropRect(image.naturalWidth,image.naturalHeight);
+  const rotated=Math.abs(rotation%180)===90;
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);
+  ctx.translate(w/2,h/2);ctx.rotate(rotation*Math.PI/180);ctx.scale(flipH?-1:1,flipV?-1:1);
+  ctx.filter=original?"none":filters(scale);
+  ctx.drawImage(image,r.x,r.y,r.w,r.h,-(rotated?h:w)/2,-(rotated?w:h)/2,rotated?h:w,rotated?w:h);
+  ctx.restore();
+  const warmth=+$("warmth").value;
+  if(!original&&warmth){
+   ctx.save();ctx.globalCompositeOperation="soft-light";
+   ctx.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
+   ctx.fillRect(0,0,w,h);ctx.restore();
+  }
+  $("dimensions").textContent=size.w+" × "+size.h+" px";
+  $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
+  $("exportSummary").textContent=size.w+" × "+size.h+" px · "+$("format").selectedOptions[0].textContent+(size.scaled?" · optimized for browser memory":"");
+  if(size.scaled)announce("Output otomatis dibatasi agar ekspor tetap ringan (maks. 24 MP / 6.000 px).");
+  else announce("Preview ringan aktif · ekspor kualitas penuh sesuai ukuran output.");
+  updateLabels();
+ }catch(e){announce("Render gagal: "+e.message);}
+}
+function scheduleRender(original=false){
+ pendingOriginal=original;
+ if(framePending)return;
+ framePending=requestAnimationFrame(()=>{framePending=0;render(pendingOriginal);});
+}
+function updateLabels(){
+ sliders.forEach(k=>{
+  const v=+$(k).value;
+  $(k+"Value").textContent=k==="sharpness"?v+" px":k==="warmth"?(v>0?"+":"")+v:v+"%";
+ });
+ $("fadeValue").textContent=lookIntensity+"%";
+ $("qualityValue").textContent=$("quality").value+"%";
+}
+function updateFormatControl(){
+ $("quality").disabled=$("format").value==="image/png";
+ updateLabels();
+}
+function historyButtons(){
+ $("undo").disabled=historyIndex<=0;
+ $("redo").disabled=historyIndex>=history.length-1;
+}
+function pushHistory(){
+ if(!image)return;
+ const snapshot=state();
+ if(historyIndex>=0&&JSON.stringify(history[historyIndex])===JSON.stringify(snapshot))return;
+ history=history.slice(0,historyIndex+1);
+ history.push(snapshot);
+ if(history.length>40)history.shift();
+ historyIndex=history.length-1;
+ historyButtons();
+}
+function applyState(s){
+ sliders.forEach(k=>$(k).value=s.values[k]);
+ rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;
+ outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;
+ $("fade").value=lookIntensity;
+ syncDimensionFields();updateLabels();scheduleRender();
+}
+function toast(message){
+ const t=$("toast");t.textContent=message;t.classList.add("show");
+ clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400);
+}
+function loadFile(f){
+ if(!f)return;
+ if(!/^image\/(jpeg|png|webp|avif)$/.test(f.type)){toast("Pilih file JPEG, PNG, WebP, atau AVIF.");return;}
+ if(f.size>MAX_BYTES){toast("File melebihi batas 30 MB.");return;}
+ const sequence=++loadSequence,url=URL.createObjectURL(f),img=new Image();
+ img.onload=()=>{
+  if(sequence!==loadSequence){URL.revokeObjectURL(url);return;}
+  const pixels=img.naturalWidth*img.naturalHeight;
+  if(!img.naturalWidth||!img.naturalHeight||pixels>MAX_INPUT_PIXELS){
+   URL.revokeObjectURL(url);toast("Resolusi tidak valid atau melebihi 40 MP.");return;
+  }
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=url;image=img;file=f;rotation=0;flipH=false;flipV=false;cropRatio=null;
+  outW=0;outH=0;look="original";lookIntensity=100;
+  sliders.forEach(k=>$(k).value=defaults[k]);$("fade").value=100;
+  $("empty").hidden=true;canvas.hidden=false;$("compare").disabled=false;
+  $("fileName").textContent=f.name;
+  $("fileMeta").textContent=(f.size/1024/1024).toFixed(2)+" MB · "+img.naturalWidth+" × "+img.naturalHeight+" px";
+  syncDimensionFields();history=[];historyIndex=-1;
+  render();pushHistory();toast("Foto berhasil dibuka secara lokal.");
+ };
+ img.onerror=()=>{URL.revokeObjectURL(url);if(sequence===loadSequence)toast("Browser tidak dapat membaca file ini.");};
+ img.src=url;
+}
+function update(push=true){if(!image)return;scheduleRender();if(push)pushHistory();}
+function resetAll(){
+ if(!image)return;
+ sliders.forEach(k=>$(k).value=defaults[k]);
+ rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;
+ $("fade").value=100;document.querySelectorAll("[data-preset]").forEach(x=>x.classList.remove("selected"));
+ document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",x.dataset.ratio==="free"));
+ syncDimensionFields();update();toast("Semua edit dikembalikan.");
+}
+function exportImage(){
+ if(!image||exporting){if(!image)toast("Buka foto terlebih dahulu.");return;}
+ const type=$("format").value,quality=+$("quality").value/100,size=outputSize();
+ if(size.w*size.h>MAX_OUTPUT_PIXELS){toast("Ukuran ekspor melebihi batas aman.");return;}
+ exporting=true;$("download").disabled=$("topExport").disabled=true;
+ announce("Menyiapkan ekspor resolusi tinggi…");
+ let exportCanvas;
+ try{
+  exportCanvas=document.createElement("canvas");
+  drawTo(exportCanvas,false,type==="image/jpeg"?"#ffffff":null);
+  exportCanvas.toBlob(blob=>{
+   try{
+    if(!blob){toast("Ekspor gagal. Coba ukuran gambar lebih kecil.");return;}
+    const actualType=blob.type||type;
+    const ext=actualType==="image/jpeg"?"jpg":actualType==="image/webp"?"webp":"png";
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="zero-studio-"+Date.now()+"."+ext;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+    toast("Ekspor selesai · "+(blob.size/1024/1024).toFixed(2)+" MB");
+    announce("Ekspor "+ext.toUpperCase()+" berhasil.");
+   }finally{
+    exportCanvas.width=0;exportCanvas.height=0;exporting=false;
+    $("download").disabled=$("topExport").disabled=false;
+   }
+  },type,type==="image/png"?undefined:quality);
+ }catch(e){
+  if(exportCanvas){exportCanvas.width=0;exportCanvas.height=0;}
+  exporting=false;$("download").disabled=$("topExport").disabled=false;
+  toast("Ekspor gagal: "+e.message);
+ }
+}
+const input=document.createElement("input");
+input.type="file";input.id="photo";input.accept="image/jpeg,image/png,image/webp,image/avif";input.hidden=true;
+document.body.appendChild(input);
+input.addEventListener("change",()=>{loadFile(input.files[0]);input.value="";});
+$("browse").onclick=$("startUpload").onclick=()=>input.click();
+$("dropzone").addEventListener("click",e=>{if(!e.target.closest("button"))input.click();});
+function setupDrop(target){
+ ["dragenter","dragover"].forEach(ev=>target.addEventListener(ev,e=>{e.preventDefault();target.style.borderColor="#a9f36c";}));
+ ["dragleave","drop"].forEach(ev=>target.addEventListener(ev,e=>{e.preventDefault();target.style.borderColor="";}));
+ target.addEventListener("drop",e=>{const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)loadFile(f);});
+}
+setupDrop($("stage"));setupDrop($("dropzone"));
+document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>{
+ document.querySelectorAll(".tooltab").forEach(x=>x.classList.toggle("active",x===b));
+ document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id==="panel-"+b.dataset.panel));
+}));
+sliders.forEach(k=>{
+ $(k).addEventListener("input",()=>{scheduleRender();updateLabels();});
+ $(k).addEventListener("change",pushHistory);
+});
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
+ if(!image)return;
+ look=b.dataset.preset;
+ document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x===b));
+ update();toast(b.textContent.trim()+" diterapkan.");
+}));
+$("fade").addEventListener("input",()=>{lookIntensity=+$("fade").value;scheduleRender();updateLabels();});
+$("fade").addEventListener("change",pushHistory);
+$("rotateLeft").onclick=()=>{if(image){rotation=(rotation+270)%360;if(outW&&outH)[outW,outH]=[outH,outW];syncDimensionFields();update();}};
+$("rotateRight").onclick=()=>{if(image){rotation=(rotation+90)%360;if(outW&&outH)[outW,outH]=[outH,outW];syncDimensionFields();update();}};
+$("flipH").onclick=()=>{if(image){flipH=!flipH;update();}};
+$("flipV").onclick=()=>{if(image){flipV=!flipV;update();}};
+document.querySelectorAll(".crop").forEach(b=>b.onclick=()=>{
+ if(!image)return;
+ cropRatio=b.dataset.ratio==="free"?null:+b.dataset.ratio;outW=0;outH=0;
+ document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",x===b));
+ syncDimensionFields();update();
+});
+$("outWidth").addEventListener("input",()=>{lastDimensionEdited="width";});
+$("outHeight").addEventListener("input",()=>{lastDimensionEdited="height";});
+$("applySize").onclick=()=>{
+ if(!image)return;
+ let w=+$("outWidth").value,h=+$("outHeight").value;
+ const base=baseSize();
+ if($("lockRatio").checked){
+  if(lastDimensionEdited==="width")h=Math.max(1,Math.round(w*base.h/base.w));
+  else w=Math.max(1,Math.round(h*base.w/base.h));
+ }
+ if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1){toast("Masukkan dimensi yang valid.");return;}
+ const size=boundedSize(w,h);outW=size.w;outH=size.h;
+ syncDimensionFields();update();toast("Dimensi output diterapkan.");
+};
+$("auto").onclick=()=>{
+ if(!image)return;
+ $("brightness").value=104;$("contrast").value=108;$("saturation").value=108;$("warmth").value=2;
+ update();toast("Auto tone diterapkan.");
+};
+$("resetAdjust").onclick=()=>{sliders.forEach(k=>$(k).value=defaults[k]);update();};
+$("resetAll").onclick=resetAll;
+$("download").onclick=$("topExport").onclick=exportImage;
+$("undo").onclick=()=>{
+ if(historyIndex>0){historyIndex--;applyState(history[historyIndex]);historyButtons();toast("Undo");}
+};
+$("redo").onclick=()=>{
+ if(historyIndex<history.length-1){historyIndex++;applyState(history[historyIndex]);historyButtons();toast("Redo");}
+};
+$("compare").addEventListener("pointerdown",()=>{if(image)render(true);});
+["pointerup","pointerleave","pointercancel","blur"].forEach(ev=>$("compare").addEventListener(ev,()=>scheduleRender(false)));
+$("fit").onclick=()=>{if(image){canvas.style.maxHeight="calc(100vh - 230px)";toast("Canvas disesuaikan ke area kerja.");}};
+$("quality").oninput=updateLabels;
+$("format").onchange=updateFormatControl;
+document.addEventListener("keydown",e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();$("undo").click();}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();$("redo").click();}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();exportImage();}
+});
+window.addEventListener("beforeunload",()=>{loadSequence++;if(framePending)cancelAnimationFrame(framePending);if(objectUrl)URL.revokeObjectURL(objectUrl);});
+$("quality").disabled=$("format").value==="image/png";
 updateLabels();
-})();
-</script>
+})();</script>
 </body>
 </html>
