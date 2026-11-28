@@ -76,10 +76,14 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
   <div class="control"><div class="control-head"><label for="brightness">Brightness</label><output class="val" id="brightnessValue">100%</output></div><input id="brightness" type="range" min="0" max="200" value="100"></div>
   <div class="control"><div class="control-head"><label for="contrast">Contrast</label><output class="val" id="contrastValue">100%</output></div><input id="contrast" type="range" min="0" max="200" value="100"></div>
   <div class="control"><div class="control-head"><label for="saturation">Saturation</label><output class="val" id="saturationValue">100%</output></div><input id="saturation" type="range" min="0" max="200" value="100"></div>
-  <div class="control"><div class="control-head"><label for="warmth">Warmth</label><output class="val" id="warmthValue">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
+  <div class="control"><div class="control-head"><label for="warmth">Temperature</label><output class="val" id="warmthValue">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
   <div class="control"><div class="control-head"><label for="sharpness">Soft focus</label><output class="val" id="sharpnessValue">0 px</output></div><input id="sharpness" type="range" min="0" max="4" step=".5" value="0"></div>
   <div class="control"><div class="control-head"><label for="sharpen">Sharpen</label><output class="val" id="sharpenValue">0%</output></div><input id="sharpen" type="range" min="0" max="100" value="0"></div>
   <div class="control"><div class="control-head"><label for="vignette">Vignette</label><output class="val" id="vignetteValue">0%</output></div><input id="vignette" type="range" min="0" max="100" value="0"></div>
+  <div class="divider"></div><div class="section-label">Color grading</div>
+  <div class="control"><div class="control-head"><label for="highlights">Highlights</label><output class="val" id="highlightsValue">0</output></div><input id="highlights" type="range" min="-100" max="100" value="0"></div>
+  <div class="control"><div class="control-head"><label for="shadows">Shadows</label><output class="val" id="shadowsValue">0</output></div><input id="shadows" type="range" min="-100" max="100" value="0"></div>
+  <div class="control"><div class="control-head"><label for="tint">Tint</label><output class="val" id="tintValue">0</output></div><input id="tint" type="range" min="-50" max="50" value="0"></div>
   <div class="divider"></div><div class="action-grid"><button class="btn" id="auto">Auto tone</button><button class="btn" id="resetAdjust">Reset adjustments</button></div>
  </section>
  <section class="panel" id="panel-filters">
@@ -126,8 +130,8 @@ const INTERACTIVE_PREVIEW_MAX_PIXELS=640000;
 const $=id=>document.getElementById(id);
 const canvas=$("preview");
 const ctx=canvas.getContext("2d",{alpha:true});
-const sliders=["brightness","contrast","saturation","warmth","sharpness","sharpen","vignette"];
-const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0,sharpen:0,vignette:0};
+const sliders=["brightness","contrast","saturation","warmth","sharpness","sharpen","vignette","highlights","shadows","tint"];
+const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0,sharpen:0,vignette:0,highlights:0,shadows:0,tint:0};
 let previewImage=null,file=null,sourceWidth=0,sourceHeight=0,rotation=0,flipH=false,flipV=false;
 let cropRatio=null,cropPanX=0.5,cropPanY=0.5,outW=0,outH=0,history=[],historyIndex=-1;
 let cropDrag=null;
@@ -218,8 +222,15 @@ function drawVignette(target,w,h,original=false){
 }
 function drawSharpen(target,w,h,original=false){
  const amount=original?0:Math.max(0,Math.min(100,+$("sharpen").value))/100;
- if(!amount)return;
+ const highlights=original?0:Math.max(-100,Math.min(100,+$("highlights").value))/100;
+ const shadows=original?0:Math.max(-100,Math.min(100,+$("shadows").value))/100;
+ const tint=original?0:Math.max(-50,Math.min(50,+$("tint").value))/50;
+ if(!amount&&!highlights&&!shadows&&!tint)return;
  const strength=amount*1.25,bandHeight=128,context=target;
+ const smoothstep=(edge0,edge1,value)=>{
+  const x=Math.max(0,Math.min(1,(value-edge0)/(edge1-edge0)));
+  return x*x*(3-2*x);
+ };
  let savedRow=null;
  for(let top=0;top<h;top+=bandHeight){
   const rows=Math.min(bandHeight,h-top),readTop=top>0?top-1:0;
@@ -233,11 +244,21 @@ function drawSharpen(target,w,h,original=false){
     const leftX=Math.max(0,x-1),rightX=Math.min(w-1,x+1);
     const center=(row*w+x)*4,north=(northRow*w+x)*4,south=(southRow*w+x)*4;
     const west=(row*w+leftX)*4,east=(row*w+rightX)*4,dest=(y*w+x)*4;
+    let red=0,green=0,blue=0;
     for(let channel=0;channel<3;channel++){
      const value=rawData[center+channel];
      const blurred=(value*4+rawData[north+channel]+rawData[south+channel]+rawData[west+channel]+rawData[east+channel])/8;
-     out[dest+channel]=Math.max(0,Math.min(255,Math.round(value+(value-blurred)*strength)));
+     const adjusted=Math.max(0,Math.min(255,value+(value-blurred)*strength));
+     if(channel===0)red=adjusted;else if(channel===1)green=adjusted;else blue=adjusted;
     }
+    const luminance=(red*0.2126+green*0.7152+blue*0.0722)/255;
+    const highlightMask=smoothstep(0.28,0.88,luminance);
+    const shadowMask=1-smoothstep(0.12,0.62,luminance);
+    const tonalShift=(highlights*highlightMask+shadows*shadowMask)*38;
+    const tintShift=tint*20;
+    out[dest]=Math.max(0,Math.min(255,Math.round(red+tonalShift+tintShift)));
+    out[dest+1]=Math.max(0,Math.min(255,Math.round(green+tonalShift-tintShift*0.9)));
+    out[dest+2]=Math.max(0,Math.min(255,Math.round(blue+tonalShift+tintShift)));
     out[dest+3]=rawData[center+3];
    }
   }
@@ -321,7 +342,7 @@ function scheduleRender(original=false,interactive=false){
 function updateLabels(){
  sliders.forEach(k=>{
   const v=+$(k).value;
-  $(k+"Value").textContent=k==="sharpness"?v+" px":k==="warmth"?(v>0?"+":"")+v:v+"%";
+  $(k+"Value").textContent=k==="sharpness"?v+" px":["warmth","highlights","shadows","tint"].includes(k)?(v>0?"+":"")+v:v+"%";
  });
  $("fadeValue").textContent=lookIntensity+"%";
  $("qualityValue").textContent=$("quality").value+"%";
@@ -657,6 +678,35 @@ async function runEditorSelfTest(){
   verify("Undo restores the previous sharpen amount",+$("sharpen").value===0&&hasPixels());
   $("redo").click();await afterFrame();
   verify("Redo restores the sharpen amount",+$("sharpen").value===85&&hasPixels());
+  const gradeBaseline=new Uint8ClampedArray(ctx.getImageData(0,0,canvas.width,canvas.height).data);
+  $("highlights").value=72;
+  $("highlights").dispatchEvent(new Event("input",{bubbles:true}));
+  $("highlights").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const highlightsAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let highlightsChanged=false;
+  for(let i=0;i<highlightsAfter.length;i++){if(highlightsAfter[i]!==gradeBaseline[i]){highlightsChanged=true;break;}}
+  verify("Highlights grading changes brighter tones",highlightsChanged&&hasPixels());
+  $("shadows").value=64;
+  $("shadows").dispatchEvent(new Event("input",{bubbles:true}));
+  $("shadows").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const shadowsAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let shadowsChanged=false;
+  for(let i=0;i<shadowsAfter.length;i++){if(shadowsAfter[i]!==highlightsAfter[i]){shadowsChanged=true;break;}}
+  verify("Shadows grading changes darker tones",shadowsChanged&&hasPixels());
+  $("tint").value=-42;
+  $("tint").dispatchEvent(new Event("input",{bubbles:true}));
+  $("tint").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const tintAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let tintChanged=false;
+  for(let i=0;i<tintAfter.length;i++){if(tintAfter[i]!==shadowsAfter[i]){tintChanged=true;break;}}
+  verify("Tint grading shifts image color",tintChanged&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores previous tint setting",+$("tint").value===0&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies tint setting",+$("tint").value===-42&&hasPixels());
   const cinema=document.querySelector('[data-preset="cinema"]');
   verify("Cinematic preset control exists",!!cinema);cinema.click();await afterFrame();
   verify("Look preset render keeps preview visible",look==="cinema"&&hasPixels());
