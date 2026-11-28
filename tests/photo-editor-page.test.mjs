@@ -28,6 +28,7 @@ test("photo editor accepts local formats with explicit source-file limits", () =
 test("photo editor provides adjustments, creative looks, transforms, history and export", () => {
   for (const control of [
     "brightness", "contrast", "saturation", "warmth", "sharpness", "sharpen",
+    "highlights", "shadows", "tint",
     "rotateLeft", "rotateRight", "flipH", "flipV", "applySize",
     "undo", "redo", "download", "format", "quality"
   ]) {
@@ -110,7 +111,9 @@ test("browser self-test mode covers local load, adjustments, transforms, sharpen
     "Redo reapplies transform state", "Crop ratio applies and remains selected",
     "Undo restores crop selection", "Redo restores crop selection",
     "PNG export produces a non-empty image", "Sharpen changes edge detail in preview",
-    "Undo restores the previous sharpen amount", "Redo restores the sharpen amount"
+    "Undo restores the previous sharpen amount", "Redo restores the sharpen amount",
+    "Highlights grading changes brighter tones", "Shadows grading changes darker tones",
+    "Tint grading shifts image color", "Undo restores previous tint setting", "Redo reapplies tint setting"
   ]) assert.ok(script.includes(check), "missing self-test check: " + check);
   assert.match(script, /new URLSearchParams\(location\.search\)\.get\("selftest"\)==="1"/);
 });
@@ -199,6 +202,23 @@ test("sharpen uses bounded row-band buffers and is shared by preview and export"
   assert.ok(script.includes("drawSharpen(ctx,w,h,original)"), "preview must use sharpen engine");
   assert.ok(script.includes("drawSharpen(c,w,h,original)"), "full-resolution export must use sharpen engine");
   assert.ok(script.includes("context.putImageData(output,0,top)"));
+});
+
+
+test("color grading controls are included in the state and shared row-buffer pixel engine", () => {
+  for (const control of ["highlights", "shadows", "tint"]) {
+    assert.match(html, new RegExp('id="' + control + '"'));
+    assert.match(script, new RegExp('"' + control + '"'));
+  }
+  assert.match(html, /label for="warmth">Temperature/);
+  assert.match(script, /highlights:0,shadows:0,tint:0/);
+  assert.match(script, /function drawSharpen\(target,w,h,original=false\)/);
+  assert.match(script, /const highlightMask=smoothstep\(0\.28,0\.88,luminance\)/);
+  assert.match(script, /const shadowMask=1-smoothstep\(0\.12,0\.62,luminance\)/);
+  assert.match(script, /const tintShift=tint\*20/);
+  assert.ok(script.includes("drawSharpen(ctx,w,h,original)"), "preview applies grading");
+  assert.ok(script.includes("drawSharpen(c,w,h,original)"), "export applies grading");
+  assert.match(script, /\["warmth","highlights","shadows","tint"\]\.includes\(k\)/);
 });
 
 test("inline photo editor script parses without syntax errors", () => {
