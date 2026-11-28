@@ -530,6 +530,7 @@ function drawSegmentationInput(target){
 function handleLocalAIWorkerMessage(event){
  const message=event.data||{};
  if(message.id!==aiSegmentationRequestId)return;
+ if(message.photoSequence!==undefined&&message.photoSequence!==loadSequence)return;
  if(message.type==="STATUS"){
   $("aiStatus").textContent=String(message.message||"Processing locally…");
   return;
