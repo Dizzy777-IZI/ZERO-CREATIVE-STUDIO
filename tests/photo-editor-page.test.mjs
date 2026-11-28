@@ -195,7 +195,9 @@ test("photo editor protects unsaved work and provides a lightweight vignette ret
   assert.match(script, /window\.confirm\("Ada perubahan yang belum diekspor/);
   assert.match(script, /window\.addEventListener\("beforeunload",e=>\{\s*if\(hasUnsavedChanges\(\)\)/);
   assert.match(script, /window\.addEventListener\("pagehide",e=>\{/);
-  assert.match(script, /if\(!e\.persisted&&previewImage&&typeof previewImage\.close==="function"\)/);
+  assert.ok(script.includes("if(!e.persisted){if(segmenterWorker)"));
+  assert.ok(script.includes('segmenterWorker.postMessage({type:"DISPOSE"})'));
+  assert.ok(script.includes("previewImage.close()"));
   assert.match(script, /function drawVignette\(target,w,h,original=false\)/);
   assert.ok(html.includes('id="vignette"'));
   assert.ok(script.includes("Vignette darkens the image edges"));
@@ -263,7 +265,7 @@ test("manual background masking paints reversible vector strokes and exports tru
 
 test("JPEG background is composited behind the mask so transparent pixels remain white", () => {
   assert.match(script, /getContext\("2d",\{alpha:true\}\)/);
-  assert.match(script, /if\(!original&&maskStrokes\.length\)\{const effectiveMask=renderEffectiveMask\(w,h\);applyMaskToContext\(c,w,h,effectiveMask\);\}/);
+  assert.match(script, /if\(!original&&hasMaskSelection\(\)\)\{const effectiveMask=renderEffectiveMask\(w,h\);applyMaskToContext\(c,w,h,effectiveMask\);\}/);
   assert.match(script, /globalCompositeOperation="destination-over";c\.fillStyle=background/);
 });
 
@@ -286,38 +288,38 @@ test("background mask supports selection inversion, inverted brush semantics and
 
 test("local person segmentation is lazy, pinned, hash-verified and isolated from photo uploads", () => {
   for (const control of ["aiSegment", "aiStatus", "aiThreshold"]) {
-    assert.match(html, new RegExp('id="' + control + '"'));
+    assert.ok(html.includes('id="' + control + '"'), "missing local AI control: " + control);
   }
 
-  assert.match(script, /function runLocalPersonSegmentation\(\)/);
-  assert.match(script, /new Worker\("\/ai\/segmenter\.worker\.js",\{type:"module"/);
-  assert.match(script, /worker\.postMessage\(\{type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap\},\[bitmap\]\)/);
-  assert.match(script, /function drawSegmentationInput\(target\)/);
-  assert.match(script, /message\.photoSequence!==loadSequence/);
-  assert.match(script, /function confidenceToAlpha\(value,threshold\)/);
-  assert.match(script, /function drawAIMaskBase\(context\)/);
-  assert.match(script, /aiMaskData=s\.aiMaskData\|\|null/);
-  assert.match(script, /delete copy\.aiMaskData/);
-  assert.match(script, /AI confidence mask is composited into the editable selection/);
+  assert.ok(script.includes('function runLocalPersonSegmentation()'));
+  assert.ok(script.includes('new Worker("/ai/segmenter.worker.js",{type:"module"'));
+  assert.ok(script.includes('worker.postMessage({type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap},[bitmap])'));
+  assert.ok(script.includes("function drawSegmentationInput(target)"));
+  assert.ok(script.includes("message.photoSequence!==loadSequence"));
+  assert.ok(script.includes("function confidenceToAlpha(value,threshold)"));
+  assert.ok(script.includes("function drawAIMaskBase(context)"));
+  assert.ok(script.includes("aiMaskData=s.aiMaskData||null"));
+  assert.ok(script.includes("delete copy.aiMaskData"));
+  assert.ok(script.includes("AI confidence mask is composited into the editable selection"));
 
-  assert.match(localAIWorker, /@mediapipe\/tasks-vision@1\.2\.3\/vision_bundle\.mjs/);
-  assert.match(localAIWorker, /@mediapipe\/tasks-vision@1\.2\.3\/wasm/);
-  assert.match(localAIWorker, /const MODEL_BYTES = 249537/);
-  assert.match(localAIWorker, /const MODEL_SHA256 = "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b"/);
-  assert.match(localAIWorker, /image_segmenter\/selfie_segmenter\/float16\/1\/selfie_segmenter\.tflite/);
-  assert.match(localAIWorker, /credentials: "omit"/);
-  assert.match(localAIWorker, /method: "GET"/);
-  assert.match(localAIWorker, /mode: "cors"/);
-  assert.match(localAIWorker, /referrerPolicy: "no-referrer"/);
-  assert.match(localAIWorker, /crypto\.subtle\.digest\("SHA-256", modelBuffer\)/);
-  assert.match(localAIWorker, /ImageSegmenter\.createFromOptions/);
-  assert.match(localAIWorker, /delegate: "CPU"/);
-  assert.match(localAIWorker, /outputConfidenceMasks: true/);
-  assert.match(localAIWorker, /confidenceMasks/);
-  assert.match(localAIWorker, /const personClassIndex = masks\.length > 1 \? 1 : 0/);
-  assert.match(localAIWorker, /const mask = masks\[personClassIndex\]/);
-  assert.match(localAIWorker, /type: "RESULT", id, photoSequence, width, height, classIndex: personClassIndex/);
-  assert.match(localAIWorker, /type: "STATUS", id, photoSequence, message/);
+  assert.ok(localAIWorker.includes("@mediapipe/tasks-vision@1.2.3/vision_bundle.mjs"));
+  assert.ok(localAIWorker.includes("@mediapipe/tasks-vision@1.2.3/wasm"));
+  assert.ok(localAIWorker.includes("const MODEL_BYTES = 249537"));
+  assert.ok(localAIWorker.includes('const MODEL_SHA256 = "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b"'));
+  assert.ok(localAIWorker.includes("image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite"));
+  assert.ok(localAIWorker.includes('credentials: "omit"'));
+  assert.ok(localAIWorker.includes('method: "GET"'));
+  assert.ok(localAIWorker.includes('mode: "cors"'));
+  assert.ok(localAIWorker.includes('referrerPolicy: "no-referrer"'));
+  assert.ok(localAIWorker.includes('crypto.subtle.digest("SHA-256", modelBuffer)'));
+  assert.ok(localAIWorker.includes("ImageSegmenter.createFromOptions"));
+  assert.ok(localAIWorker.includes('delegate: "CPU"'));
+  assert.ok(localAIWorker.includes("outputConfidenceMasks: true"));
+  assert.ok(localAIWorker.includes("confidenceMasks"));
+  assert.ok(localAIWorker.includes("const personClassIndex = masks.length > 1 ? 1 : 0"));
+  assert.ok(localAIWorker.includes("const mask = masks[personClassIndex]"));
+  assert.ok(localAIWorker.includes('type: "RESULT", id, photoSequence, width, height, classIndex: personClassIndex'));
+  assert.ok(localAIWorker.includes('type: "STATUS", id, photoSequence, message'));
   assert.doesNotMatch(localAIWorker, /XMLHttpRequest|WebSocket|sendBeacon|FormData/);
   assert.doesNotMatch(localAIWorker, /method: "POST"|method: 'POST'/);
   assert.doesNotThrow(() => new Script(localAIWorker));
