@@ -27,7 +27,7 @@ test("photo editor accepts local formats with explicit source-file limits", () =
 
 test("photo editor provides adjustments, creative looks, transforms, history and export", () => {
   for (const control of [
-    "brightness", "contrast", "saturation", "warmth", "sharpness",
+    "brightness", "contrast", "saturation", "warmth", "sharpness", "sharpen",
     "rotateLeft", "rotateRight", "flipH", "flipV", "applySize",
     "undo", "redo", "download", "format", "quality"
   ]) {
@@ -100,7 +100,7 @@ test("undo and redo synchronize selected Look and Crop controls with restored st
   assert.deepEqual(crops.map((x) => x.selected), [false, false, true]);
 });
 
-test("browser self-test mode covers local load, adjustments, transforms, history, crop and PNG export", () => {
+test("browser self-test mode covers local load, adjustments, transforms, sharpen history, crop and PNG export", () => {
   assert.match(script, /function runEditorSelfTest\(\)/);
   for (const check of [
     "Synthetic PNG created", "Local image loaded", "Preview visible and contains pixels",
@@ -109,7 +109,8 @@ test("browser self-test mode covers local load, adjustments, transforms, history
     "Flip keeps preview visible", "Undo restores transform state",
     "Redo reapplies transform state", "Crop ratio applies and remains selected",
     "Undo restores crop selection", "Redo restores crop selection",
-    "PNG export produces a non-empty image"
+    "PNG export produces a non-empty image", "Sharpen changes edge detail in preview",
+    "Undo restores the previous sharpen amount", "Redo restores the sharpen amount"
   ]) assert.ok(script.includes(check), "missing self-test check: " + check);
   assert.match(script, /new URLSearchParams\(location\.search\)\.get\("selftest"\)==="1"/);
 });
@@ -186,6 +187,18 @@ test("photo editor protects unsaved work and provides a lightweight vignette ret
   assert.ok(script.includes("Unsaved edits trigger a leave-page warning"));
   assert.ok(script.includes("Replacing an edited photo requires confirmation"));
   assert.ok(script.includes("Successful export clears the unsaved-work warning"));
+});
+
+
+test("sharpen uses bounded row-band buffers and is shared by preview and export", () => {
+  assert.match(script, /function drawSharpen\(target,w,h,original=false\)/);
+  assert.match(script, /const strength=amount\*1\.25,bandHeight=128/);
+  assert.match(script, /getImageData\(0,readTop,w,Math\.min\(h,top\+rows\+1\)-readTop\)/);
+  assert.match(script, /context\.createImageData\(w,rows\)/);
+  assert.match(script, /savedRow=rawData\.slice\(finalRow,finalRow\+w\*4\)/);
+  assert.ok(script.includes("drawSharpen(ctx,w,h,original)"), "preview must use sharpen engine");
+  assert.ok(script.includes("drawSharpen(c,w,h,original)"), "full-resolution export must use sharpen engine");
+  assert.ok(script.includes("context.putImageData(output,0,top)"));
 });
 
 test("inline photo editor script parses without syntax errors", () => {
