@@ -266,7 +266,7 @@ test("background mask supports selection inversion, inverted brush semantics and
   assert.match(html, /id="maskFeather"/);
   assert.match(script, /maskInverted,maskFeather:\+\$\("maskFeather"\)\.value/);
   assert.match(script, /function renderEffectiveMask\(w,h\)/);
-  assert.match(script, /effective\.filter=feather>0\?"blur\("\+feather\+"px\)":"none"/);
+  assert.match(script, /const featherFilter=feather>0\?"blur\("\+feather\+"px\)":"none"/);
   assert.match(script, /if\(maskInverted\)\{\s*effective\.filter="none";effective\.fillStyle="#fff";effective\.fillRect\(0,0,w,h\);\s*effective\.globalCompositeOperation="destination-out";effective\.filter=featherFilter/);
   assert.match(script, /mode:\(maskInverted\?!requestedErase:requestedErase\)\?"erase":"add"/);
   assert.match(script, /maskInverted=!maskInverted/);
