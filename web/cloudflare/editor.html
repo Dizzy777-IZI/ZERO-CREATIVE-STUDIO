@@ -150,7 +150,7 @@ let cropDrag=null;
 let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
 let loadSequence=0,lastDimensionEdited="width",exporting=false,savedStateSignature=null;
 let maskCanvas=null,maskOverlayCanvas=null,maskStrokes=[],maskApplied=false,maskRevision=0,maskPointer=null,lastGeometrySignature=null;
-const MAX_MASK_STROKES=250,MAX_MASK_POINTS_PER_STROKE=4000;
+const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000;
 function state(){
  return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskRevision};
 }
@@ -629,10 +629,9 @@ canvas.addEventListener("pointermove",event=>{
  const point=maskPointFromEvent(event),last=maskPointer.lastPoint,distance=Math.hypot(point.x-last.x,point.y-last.y);
  if(distance<Math.max(1,maskPointer.stroke.radius*.16))return;
  const context=maskCanvas.getContext("2d");if(!context)return;
+ if(maskPointer.stroke.points.length>=MAX_MASK_POINTS_PER_STROKE){announce("Batas detail sapuan tercapai; lepaskan kuas untuk menyimpan.");return;}
  paintMaskSegment(context,maskPointer.stroke,last,point);
- if(maskPointer.stroke.points.length<MAX_MASK_POINTS_PER_STROKE)maskPointer.stroke.points.push(point);
- else announce("Batas detail sapuan tercapai; lepaskan kuas untuk menyimpan.");
- maskPointer.lastPoint=point;scheduleRender(false,true);
+ maskPointer.stroke.points.push(point);maskPointer.lastPoint=point;scheduleRender(false,true);
 });
 function finishMaskPaint(event){
  if(!maskPointer||event.pointerId!==maskPointer.pointerId)return;
