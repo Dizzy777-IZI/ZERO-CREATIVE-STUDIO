@@ -332,11 +332,11 @@ function renderEffectiveMask(w,h){
  const effective=maskEffectiveCanvas.getContext("2d");if(!effective)return null;
  effective.clearRect(0,0,w,h);
  const feather=+$("maskFeather").value*w/Math.max(1,maskCanvas.width);
- effective.filter=feather>0?"blur("+feather+"px)":"none";
+ const featherFilter=feather>0?"blur("+feather+"px)":"none";
  if(maskInverted){
-  effective.fillStyle="#fff";effective.fillRect(0,0,w,h);
-  effective.globalCompositeOperation="destination-out";effective.drawImage(maskCanvas,0,0,w,h);
- }else effective.drawImage(maskCanvas,0,0,w,h);
+  effective.filter="none";effective.fillStyle="#fff";effective.fillRect(0,0,w,h);
+  effective.globalCompositeOperation="destination-out";effective.filter=featherFilter;effective.drawImage(maskCanvas,0,0,w,h);
+ }else{effective.filter=featherFilter;effective.drawImage(maskCanvas,0,0,w,h);}
  effective.globalCompositeOperation="source-over";effective.filter="none";
  return maskEffectiveCanvas;
 }
