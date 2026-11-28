@@ -154,7 +154,8 @@ let cropDrag=null;
 let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
 let loadSequence=0,lastDimensionEdited="width",exporting=false,savedStateSignature=null;
 let maskCanvas=null,maskOverlayCanvas=null,maskEffectiveCanvas=null,maskStrokes=[],maskApplied=false,maskInverted=false,maskRevision=0,maskPointer=null,lastGeometrySignature=null;
-let aiMaskData=null,segmenterWorker=null,aiSegmentationBusy=false,aiSegmentationRequestId=0;
+let aiMaskData=null,segmenterWorker=null,aiSegmentationBusy=false,aiSegmentationRequestId=0,aiSegmentationTimeout=null;
+const AI_SEGMENTATION_TIMEOUT_MS=60000;
 const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000;
 function state(){
  return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskInverted,maskFeather:+$("maskFeather").value,maskRevision,aiMaskData,aiThreshold:+$("aiThreshold").value};
@@ -536,6 +537,7 @@ function handleLocalAIWorkerMessage(event){
   $("aiStatus").textContent=String(message.message||"Processing locally…");
   return;
  }
+ if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
  aiSegmentationBusy=false;
  if(message.type==="ERROR"){
   if(message.photoSequence===undefined||message.photoSequence===loadSequence){
@@ -567,7 +569,8 @@ function createLocalAIWorker(){
  const worker=new Worker("/ai/segmenter.worker.js",{type:"module",name:"ZERO local person segmentation"});
  worker.addEventListener("message",handleLocalAIWorkerMessage);
  worker.addEventListener("error",event=>{
-  aiSegmentationBusy=false;
+  if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
+  aiSegmentationBusy=false;segmenterWorker=null;
   $("aiStatus").textContent="Local AI worker could not start: "+(event.message||"worker error")+". Manual brush remains available.";
   updateMaskActions();
  });
@@ -587,9 +590,17 @@ async function runLocalPersonSegmentation(){
   const worker=createLocalAIWorker();
   worker.postMessage({type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap},[bitmap]);
   bitmap=null;
+  aiSegmentationTimeout=setTimeout(()=>{
+   if(requestId!==aiSegmentationRequestId)return;
+   aiSegmentationTimeout=null;aiSegmentationBusy=false;aiSegmentationRequestId++;
+   if(segmenterWorker){try{segmenterWorker.terminate();}catch{}segmenterWorker=null;}
+   $("aiStatus").textContent="Local AI timed out after 60 seconds. The worker was stopped; try again or use the manual brush.";
+   updateMaskActions();
+  },AI_SEGMENTATION_TIMEOUT_MS);
  }catch(error){
   if(bitmap&&typeof bitmap.close==="function")bitmap.close();
   if(inputCanvas){inputCanvas.width=0;inputCanvas.height=0;}
+  if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
   aiSegmentationBusy=false;
   $("aiStatus").textContent="Local AI could not start: "+(error.message||"Unknown error")+". Manual brush remains available.";
   updateMaskActions();
@@ -780,7 +791,15 @@ canvas.addEventListener("pointercancel",finishMaskPaint);
 $("brushSize").addEventListener("input",()=>{$("brushSizeValue").textContent=$("brushSize").value+" px";});
 $("maskOverlay").addEventListener("change",()=>scheduleRender(false,false));
 $("aiSegment").addEventListener("click",runLocalPersonSegmentation);
-$("aiConsent").addEventListener("change",()=>{updateMaskActions();if($("aiConsent").checked)$("aiStatus").textContent="Consent recorded for this page session. Your image is processed locally; the model will load only when you click Detect person locally.";});
+$("aiConsent").addEventListener("change",()=>{
+ if(!$("aiConsent").checked){
+  if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
+  if(aiSegmentationBusy){aiSegmentationRequestId++;aiSegmentationBusy=false;}
+  if(segmenterWorker){try{segmenterWorker.terminate();}catch{}segmenterWorker=null;}
+  $("aiStatus").textContent="AI permission withdrawn. Any active worker was stopped. Manual brush remains available.";
+ }else $("aiStatus").textContent="Consent recorded for this page session. Your image is processed locally; the model will load only when you click Detect person locally.";
+ updateMaskActions();
+});
 $("aiThreshold").addEventListener("input",()=>{if(!aiMaskData)return;$("aiThresholdValue").textContent=$("aiThreshold").value+"%";redrawMaskStrokes();scheduleRender(false,true);});
 $("aiThreshold").addEventListener("change",()=>{if(!aiMaskData)return;maskRevision++;pushHistory();scheduleRender(false,false);});
 $("maskFeather").addEventListener("input",()=>{$("maskFeatherValue").textContent=$("maskFeather").value+" px";scheduleRender(false,true);});
@@ -871,7 +890,7 @@ window.addEventListener("beforeunload",e=>{
 window.addEventListener("pagehide",e=>{
  loadSequence++;
  if(framePending){cancelAnimationFrame(framePending);framePending=0;}
- if(!e.persisted){if(segmenterWorker){try{segmenterWorker.postMessage({type:"DISPOSE"});segmenterWorker.terminate();}catch{}segmenterWorker=null;}if(previewImage&&typeof previewImage.close==="function")previewImage.close();}
+ if(!e.persisted){if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}if(segmenterWorker){try{segmenterWorker.terminate();}catch{}segmenterWorker=null;}if(previewImage&&typeof previewImage.close==="function")previewImage.close();}
 });
 async function runEditorSelfTest(){
  const checks=[];
