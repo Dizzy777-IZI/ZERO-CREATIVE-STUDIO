@@ -36,10 +36,36 @@ async function loadSegmenter(id, photoSequence) {
   const declaredLength = Number(response.headers.get("content-length") || 0);
   if (declaredLength > MAX_MODEL_BYTES) throw new Error("Model response exceeded the 1 MB safety limit.");
 
-  const modelBuffer = await response.arrayBuffer();
-  if (modelBuffer.byteLength !== MODEL_BYTES || modelBuffer.byteLength > MAX_MODEL_BYTES) {
-    throw new Error("Downloaded model has an unexpected size. The file was rejected.");
+  // Enforce the cap while streaming; checking arrayBuffer() afterward would
+  // still allow an unexpectedly large response to allocate memory first.
+  if (!response.body?.getReader) throw new Error("Streaming model download is not supported in this browser.");
+  const reader = response.body.getReader();
+  const chunks = [];
+  let receivedBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      receivedBytes += value.byteLength;
+      if (receivedBytes > MAX_MODEL_BYTES || receivedBytes > MODEL_BYTES) {
+        await reader.cancel();
+        throw new Error("Model response exceeded the verified size limit. The download was stopped.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try { reader.releaseLock(); } catch {}
   }
+
+  if (receivedBytes !== MODEL_BYTES) throw new Error("Downloaded model has an unexpected size. The file was rejected.");
+  const modelBytes = new Uint8Array(receivedBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    modelBytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  chunks.length = 0;
+  const modelBuffer = modelBytes.buffer;
 
   postStatus(id, photoSequence, "Verifying model integrity…");
   if (!self.crypto?.subtle) throw new Error("Secure model verification is unavailable in this browser context.");
@@ -49,7 +75,7 @@ async function loadSegmenter(id, photoSequence) {
 
   postStatus(id, photoSequence, "Initializing local person segmentation…");
   segmenter = await ImageSegmenter.createFromOptions(vision, {
-    baseOptions: { modelAssetBuffer: new Uint8Array(modelBuffer), delegate: "CPU" },
+    baseOptions: { modelAssetBuffer: modelBytes, delegate: "CPU" },
     runningMode: "IMAGE",
     outputCategoryMask: false,
     outputConfidenceMasks: true
