@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { Script } from "node:vm";
+import { Script, runInNewContext } from "node:vm";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 
@@ -335,6 +335,178 @@ test("local person segmentation is lazy, pinned, hash-verified and isolated from
   assert.doesNotMatch(localAIWorker, /XMLHttpRequest|WebSocket|sendBeacon|FormData/);
   assert.doesNotMatch(localAIWorker, /method: "POST"|method: 'POST'/);
   assert.doesNotThrow(() => new Script(localAIWorker));
+});
+
+test("local AI worker returns the person mask and disposes transferred resources", async () => {
+  const source = localAIWorker.replace(
+    'await import(RUNTIME_URL)',
+    'await Promise.resolve(self.__mockMediaPipe)'
+  );
+  const messages = [];
+  let messageHandler = null;
+  let fetchCount = 0;
+  let taskInitCount = 0;
+  let segmenterClosed = false;
+  const closedMasks = [];
+  const MODEL_HEX = "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b";
+  const expectedDigest = new Uint8Array(MODEL_HEX.match(/../g).map(byte => parseInt(byte, 16)));
+  const backgroundMask = {
+    width: 2, height: 2,
+    getAsFloat32Array: () => new Float32Array([1, 1, 1, 1]),
+    close() { closedMasks.push("background"); }
+  };
+  const personMask = {
+    width: 2, height: 2,
+    getAsFloat32Array: () => new Float32Array([0, 0.25, 0.75, 1]),
+    close() { closedMasks.push("person"); }
+  };
+  const mockSegmenter = {
+    segment() { return { confidenceMasks: [backgroundMask, personMask] }; },
+    close() { segmenterClosed = true; }
+  };
+  const mockMediaPipe = {
+    FilesetResolver: {
+      async forVisionTasks(url) {
+        assert.equal(url, "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm");
+        return { runtimeReady: true };
+      }
+    },
+    ImageSegmenter: {
+      async createFromOptions(vision, options) {
+        taskInitCount++;
+        assert.equal(vision.runtimeReady, true);
+        assert.equal(options.baseOptions.delegate, "CPU");
+        assert.equal(options.baseOptions.modelAssetBuffer.byteLength, 249537);
+        assert.equal(options.runningMode, "IMAGE");
+        assert.equal(options.outputConfidenceMasks, true);
+        return mockSegmenter;
+      }
+    }
+  };
+  const modelBytes = new Uint8Array(249537);
+  const workerSelf = {
+    __mockMediaPipe: mockMediaPipe,
+    crypto: { subtle: { async digest(algorithm, buffer) {
+      assert.equal(algorithm, "SHA-256");
+      assert.equal(buffer.byteLength, 249537);
+      return expectedDigest.buffer;
+    } } },
+    addEventListener(type, callback) {
+      assert.equal(type, "message");
+      messageHandler = callback;
+    },
+    postMessage(message) { messages.push(message); }
+  };
+  const sandbox = {
+    self: workerSelf,
+    Uint8Array,
+    Number,
+    Array,
+    Error,
+    fetch: async (url, options) => {
+      fetchCount++;
+      assert.equal(url, "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite");
+      assert.equal(options.method, "GET");
+      assert.equal(options.credentials, "omit");
+      assert.equal(options.mode, "cors");
+      assert.equal(options.referrerPolicy, "no-referrer");
+      let sent = false;
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: name => name.toLowerCase() === "content-length" ? "249537" : null },
+        body: {
+          getReader() {
+            return {
+              async read() {
+                if (sent) return { done: true };
+                sent = true;
+                return { done: false, value: modelBytes };
+              },
+              async cancel() {},
+              releaseLock() {}
+            };
+          }
+        }
+      };
+    }
+  };
+  runInNewContext(source, sandbox);
+  assert.equal(typeof messageHandler, "function");
+
+  const bitmap = { closed: false, close() { this.closed = true; } };
+  await messageHandler({ data: { type: "SEGMENT_IMAGE", id: 41, photoSequence: 7, bitmap } });
+  const result = messages.find(message => message.type === "RESULT");
+  assert.ok(result, "worker should return a confidence mask");
+  assert.equal(result.id, 41);
+  assert.equal(result.photoSequence, 7);
+  assert.equal(result.classIndex, 1, "person class must be selected instead of background");
+  assert.equal(result.width, 2);
+  assert.equal(result.height, 2);
+  assert.deepEqual(Array.from(new Uint8Array(result.confidence)), [0, 64, 191, 255]);
+  assert.equal(fetchCount, 1);
+  assert.equal(taskInitCount, 1);
+  assert.equal(bitmap.closed, true);
+  assert.deepEqual(closedMasks.sort(), ["background", "person"]);
+
+  await messageHandler({ data: { type: "DISPOSE" } });
+  assert.equal(segmenterClosed, true);
+});
+
+test("local AI worker cancels oversized model streams before task initialization", async () => {
+  const source = localAIWorker.replace(
+    'await import(RUNTIME_URL)',
+    'await Promise.resolve(self.__mockMediaPipe)'
+  );
+  const messages = [];
+  let messageHandler = null;
+  let cancelled = false;
+  let taskInitCount = 0;
+  const workerSelf = {
+    __mockMediaPipe: {
+      FilesetResolver: { async forVisionTasks() { return {}; } },
+      ImageSegmenter: { async createFromOptions() { taskInitCount++; throw new Error("must not initialize"); } }
+    },
+    addEventListener(type, callback) { messageHandler = callback; },
+    postMessage(message) { messages.push(message); }
+  };
+  const oversized = new Uint8Array(249538);
+  runInNewContext(source, {
+    self: workerSelf,
+    Uint8Array,
+    Number,
+    Array,
+    Error,
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => "0" },
+      body: {
+        getReader() {
+          let sent = false;
+          return {
+            async read() {
+              if (sent) return { done: true };
+              sent = true;
+              return { done: false, value: oversized };
+            },
+            async cancel() { cancelled = true; },
+            releaseLock() {}
+          };
+        }
+      }
+    })
+  });
+  const bitmap = { closed: false, close() { this.closed = true; } };
+  await messageHandler({ data: { type: "SEGMENT_IMAGE", id: 9, photoSequence: 3, bitmap } });
+  const failure = messages.find(message => message.type === "ERROR");
+  assert.ok(failure);
+  assert.equal(failure.id, 9);
+  assert.equal(failure.photoSequence, 3);
+  assert.match(failure.message, /exceeded the verified size limit/i);
+  assert.equal(cancelled, true);
+  assert.equal(taskInitCount, 0);
+  assert.equal(bitmap.closed, true);
 });
 
 test("inline photo editor script parses without syntax errors", () => {
