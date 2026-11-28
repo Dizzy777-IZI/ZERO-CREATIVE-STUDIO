@@ -8,7 +8,7 @@ const moduleSource = source.replace(/\bexport default\s+/, "globalThis.__worker 
 assert.notEqual(moduleSource, source, "Cloudflare Worker default export exists");
 assert.doesNotThrow(() => new Script(moduleSource), "Cloudflare Worker entrypoint parses");
 
-const sandbox = { URL, Response };
+const sandbox = { URL, Response, Headers };
 runInNewContext(moduleSource, sandbox);
 const worker = sandbox.__worker;
 
