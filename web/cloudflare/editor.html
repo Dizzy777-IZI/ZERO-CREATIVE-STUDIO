@@ -438,8 +438,85 @@ document.addEventListener("keydown",e=>{
  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();exportImage();}
 });
 window.addEventListener("beforeunload",()=>{loadSequence++;if(framePending)cancelAnimationFrame(framePending);if(previewImage&&typeof previewImage.close==="function")previewImage.close();});
+async function runEditorSelfTest(){
+ const checks=[];
+ const verify=(name,ok)=>{checks.push({name,ok:!!ok});if(!ok)throw new Error(name);};
+ const afterFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ const hasPixels=()=>{
+  if(canvas.hidden||!canvas.width||!canvas.height)return false;
+  try{
+   const w=Math.min(24,canvas.width),h=Math.min(24,canvas.height);
+   const pixels=ctx.getImageData(0,0,w,h).data;
+   for(let i=3;i<pixels.length;i+=4)if(pixels[i]>0)return true;
+  }catch{}
+  return false;
+ };
+ try{
+  announce("Self-test: membuat gambar uji lokal…");
+  const source=document.createElement("canvas");source.width=120;source.height=80;
+  const sourceCtx=source.getContext("2d");
+  if(!sourceCtx)throw new Error("Canvas 2D tidak tersedia.");
+  sourceCtx.fillStyle="#336699";sourceCtx.fillRect(0,0,120,80);
+  sourceCtx.fillStyle="#ffcc00";sourceCtx.fillRect(12,12,36,28);
+  const imageBlob=await new Promise(resolve=>source.toBlob(resolve,"image/png"));
+  verify("Synthetic PNG created",!!imageBlob&&imageBlob.size>0);
+  const testFile=new File([imageBlob],"zero-local-self-test.png",{type:"image/png"});
+  await loadFile(testFile);await afterFrame();
+  verify("Local image loaded",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80);
+  verify("Preview visible and contains pixels",hasPixels());
+  $("brightness").value=135;
+  $("brightness").dispatchEvent(new Event("input",{bubbles:true}));
+  $("brightness").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  verify("Brightness render keeps preview visible",hasPixels());
+  $("contrast").value=125;
+  $("contrast").dispatchEvent(new Event("input",{bubbles:true}));
+  $("contrast").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  verify("Contrast render keeps preview visible",hasPixels());
+  const cinema=document.querySelector('[data-preset="cinema"]');
+  verify("Cinematic preset control exists",!!cinema);cinema.click();await afterFrame();
+  verify("Look preset render keeps preview visible",look==="cinema"&&hasPixels());
+  const transformTab=document.querySelector('[data-panel="transform"]');
+  transformTab.click();
+  $("rotateRight").click();await afterFrame();
+  verify("Rotate keeps preview visible",rotation===90&&hasPixels());
+  $("flipH").click();await afterFrame();
+  verify("Flip keeps preview visible",flipH===true&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores transform state",flipH===false&&rotation===90&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies transform state",flipH===true&&rotation===90&&hasPixels());
+  const square=document.querySelector('.crop[data-ratio="1"]');
+  square.click();await afterFrame();
+  verify("Crop ratio applies and remains selected",cropRatio===1&&square.classList.contains("selected")&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores crop selection",cropRatio===null&&document.querySelector('.crop[data-ratio="free"]').classList.contains("selected"));
+  $("redo").click();await afterFrame();
+  verify("Redo restores crop selection",cropRatio===1&&square.classList.contains("selected"));
+  let decoded=null,exportCanvas=null,blob=null;
+  try{
+   decoded=await decodeOriginalForExport();
+   exportCanvas=document.createElement("canvas");
+   drawTo(exportCanvas,false,null,decoded.source,sourceWidth,sourceHeight);
+   blob=await new Promise(resolve=>exportCanvas.toBlob(resolve,"image/png"));
+  }finally{
+   if(decoded)decoded.cleanup();
+   if(exportCanvas){exportCanvas.width=0;exportCanvas.height=0;}
+  }
+  verify("PNG export produces a non-empty image",!!blob&&blob.type==="image/png"&&blob.size>0);
+  const passed=checks.filter(x=>x.ok).length;
+  announce("SELF-TEST PASSED · "+passed+"/"+checks.length+" checks · local only");
+  console.info("[ZERO SELF-TEST]",checks);
+ }catch(error){
+  announce("SELF-TEST FAILED · "+(error&&error.message?error.message:String(error)));
+  console.error("[ZERO SELF-TEST]",checks,error);
+ }
+}
+
 $("quality").disabled=$("format").value==="image/png";
 updateLabels();
+if(new URLSearchParams(location.search).get("selftest")==="1")void runEditorSelfTest();
 })();</script>
 </body>
 </html>
