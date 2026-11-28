@@ -246,11 +246,15 @@ function pushHistory(){
  historyIndex=history.length-1;
  historyButtons();
 }
+function syncSelections(){
+ document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x.dataset.preset===look));
+ document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",cropRatio===null?x.dataset.ratio==="free":+x.dataset.ratio===cropRatio));
+}
 function applyState(s){
  sliders.forEach(k=>$(k).value=s.values[k]);
  rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;
  outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;
- $("fade").value=lookIntensity;
+ $("fade").value=lookIntensity;syncSelections();
  syncDimensionFields();updateLabels();scheduleRender();
 }
 function announce(message){
@@ -299,7 +303,7 @@ async function loadFile(f){
   if(previewImage&&typeof previewImage.close==="function")previewImage.close();
   previewImage=preview;sourceWidth=width;sourceHeight=height;file=f;
   rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;
-  sliders.forEach(k=>$(k).value=defaults[k]);$("fade").value=100;
+  sliders.forEach(k=>$(k).value=defaults[k]);$("fade").value=100;syncSelections();
   $("empty").hidden=true;canvas.hidden=false;$("compare").disabled=false;
   $("fileName").textContent=f.name;
   $("fileMeta").textContent=(f.size/1024/1024).toFixed(2)+" MB · "+width+" × "+height+" px · preview optimized";
@@ -315,8 +319,7 @@ function resetAll(){
  if(!previewImage)return;
  sliders.forEach(k=>$(k).value=defaults[k]);
  rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;
- $("fade").value=100;document.querySelectorAll("[data-preset]").forEach(x=>x.classList.remove("selected"));
- document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",x.dataset.ratio==="free"));
+ $("fade").value=100;syncSelections();
  syncDimensionFields();update();toast("Semua edit dikembalikan.");
 }
 async function decodeOriginalForExport(){
