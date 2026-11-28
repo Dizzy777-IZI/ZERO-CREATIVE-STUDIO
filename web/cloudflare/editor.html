@@ -873,6 +873,10 @@ async function runEditorSelfTest(){
   const alphaInside=ctx.getImageData(Math.floor(canvas.width/2),Math.floor(canvas.height/2),1,1).data[3];
   const alphaOutside=ctx.getImageData(1,1,1,1).data[3];
   verify("Remove background applies transparency outside the selection",maskApplied&&alphaOutside===0&&alphaInside>0);
+  $("undo").click();await afterFrame();
+  verify("Undo restores the un-applied manual mask",!maskApplied&&maskStrokes.length===1);
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies transparent background masking",maskApplied&&ctx.getImageData(1,1,1,1).data[3]===0);
   $("invertMask").click();await afterFrame();
   const invertedInside=ctx.getImageData(Math.floor(canvas.width/2),Math.floor(canvas.height/2),1,1).data[3];
   const invertedOutside=ctx.getImageData(1,1,1,1).data[3];
@@ -881,10 +885,6 @@ async function runEditorSelfTest(){
   verify("Invert selection can be toggled back",!maskInverted&&ctx.getImageData(1,1,1,1).data[3]===0);
   $("maskFeather").value=8;$("maskFeather").dispatchEvent(new Event("input",{bubbles:true}));$("maskFeather").dispatchEvent(new Event("change",{bubbles:true}));await afterFrame();
   verify("Edge feather is applied to the effective selection",+$("maskFeather").value===8&&hasPixels());
-  $("undo").click();await afterFrame();
-  verify("Undo restores the un-applied manual mask",!maskApplied&&maskStrokes.length===1);
-  $("redo").click();await afterFrame();
-  verify("Redo reapplies transparent background masking",maskApplied&&ctx.getImageData(1,1,1,1).data[3]===0);
   const cinema=document.querySelector('[data-preset="cinema"]');
   verify("Cinematic preset control exists",!!cinema);cinema.click();await afterFrame();
   verify("Look preset render keeps preview visible",look==="cinema"&&hasPixels());
