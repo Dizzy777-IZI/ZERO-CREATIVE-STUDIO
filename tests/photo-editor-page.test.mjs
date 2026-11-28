@@ -70,7 +70,8 @@ test("full-resolution source is decoded only for export and stays local", () => 
   assert.doesNotMatch(html, /\bfetch\s*\(/);
   assert.doesNotMatch(html, /XMLHttpRequest/);
   assert.doesNotMatch(html, /WebSocket/);
-  assert.doesNotMatch(html, /https?:\/\//);
+  assert.doesNotMatch(script, /https?:\/\//);
+  assert.ok(html.includes('href="https://developers.google.com/edge/mediapipe/solutions/privacy"'));
   assert.match(html, /Your photos are never uploaded/i);
 });
 
