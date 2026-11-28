@@ -1,166 +1,143 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="description" content="Editor foto lokal ZERO Creative Studio. Foto diproses di browser dan tidak diunggah.">
-  <title>Editor Foto — ZERO Creative Studio</title>
-  <style>
-    :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#eef2ff;background:#0b1020;color-scheme:dark}
-    *{box-sizing:border-box}body{margin:0;padding:20px;min-height:100vh}
-    main{max-width:1100px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-    a{color:#a8c7ff}.eyebrow{color:#93a4c7;letter-spacing:.14em;font-size:.72rem;font-weight:700}
-    h1{margin:.35rem 0;font-size:clamp(1.8rem,5vw,2.7rem)}p{color:#b8c4dc;line-height:1.55}
-    .privacy{border:1px solid #28634c;background:#10291f;color:#a7f3d0;border-radius:12px;padding:12px 14px;margin:18px 0}
-    .layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:16px}
-    .panel{background:#111a2d;border:1px solid #28334d;border-radius:16px;padding:16px;min-width:0}
-    .stage{min-height:360px;display:grid;place-items:center;background:#080d18;border:1px dashed #3a4968;border-radius:12px;overflow:hidden}
-    canvas{display:block;max-width:100%;max-height:70vh;object-fit:contain}
-    .empty{text-align:center;padding:28px;color:#93a4c7}
-    label{display:block;font-size:.9rem;color:#d6def0;margin:16px 0 7px}
-    input[type=file]{width:100%;padding:10px;border:1px solid #394968;border-radius:10px;background:#0b1425}
-    input[type=range]{width:100%;accent-color:#91b8ff}
-    .value{float:right;color:#a8c7ff;font-variant-numeric:tabular-nums}
-    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-    button{border:1px solid #405273;border-radius:10px;background:#1b2942;color:#eef2ff;padding:10px 13px;font-weight:650;cursor:pointer}
-    button.primary{background:#dbeafe;color:#10213b;border-color:#dbeafe}
-    button:disabled{opacity:.45;cursor:not-allowed}
-    .hint{font-size:.82rem;color:#93a4c7}.status{min-height:1.4em;color:#a7f3d0;font-size:.88rem}
-    @media(max-width:760px){body{padding:12px}.layout{grid-template-columns:1fr}.stage{min-height:260px}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#090b12">
+<meta name="description" content="ZERO Studio — editor foto lokal dengan kontrol kreatif dan ekspor berkualitas.">
+<title>Photo Studio — ZERO</title>
+<style>
+:root{color-scheme:dark;--bg:#090b12;--surface:#10141f;--panel:#141a28;--panel2:#1a2232;--line:#283247;--muted:#8995aa;--text:#edf2fc;--accent:#a9f36c;--accent2:#c7ff9c;--blue:#91b8ff;--danger:#ff8f9b;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+.app{min-height:100vh;display:flex;flex-direction:column}.topbar{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);background:#0d111a;gap:18px;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:34px;height:34px;border-radius:10px;background:var(--accent);color:#10170c;display:grid;place-items:center;font-weight:950;font-size:18px}.brandname{font-weight:850;letter-spacing:.13em;font-size:13px}.crumb{color:var(--muted);font-size:12px;margin-top:3px}.top-actions{display:flex;align-items:center;gap:8px}.privacy-pill{font-size:11px;color:#c8f4a5;background:#17251a;border:1px solid #304a2b;padding:7px 10px;border-radius:99px;white-space:nowrap}
+.btn{border:1px solid #354158;color:var(--text);background:#1a2232;padding:9px 13px;border-radius:9px;font-size:12px;font-weight:700;transition:.16s}.btn:hover:not(:disabled){border-color:#71809c;background:#222e43}.btn:disabled{opacity:.35;cursor:not-allowed}.btn.primary{background:var(--accent);border-color:var(--accent);color:#12180e}.btn.primary:hover{background:var(--accent2)}.btn.ghost{background:transparent}.btn.square{width:36px;height:36px;padding:0;display:grid;place-items:center;font-size:16px}.btn.active{border-color:var(--accent);color:var(--accent);background:#1b2819}
+.workspace{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;min-height:calc(100vh - 68px);flex:1}.leftbar,.rightbar{background:var(--surface);padding:20px 17px;min-width:0}.leftbar{border-right:1px solid var(--line)}.rightbar{border-left:1px solid var(--line)}.section-label{font-size:10px;font-weight:850;letter-spacing:.15em;color:#7e8ba2;text-transform:uppercase;margin:3px 0 15px}.toolnav{display:grid;gap:6px}.tooltab{width:100%;display:flex;align-items:center;gap:11px;border:1px solid transparent;border-radius:10px;background:transparent;color:#aab5c8;padding:11px 12px;text-align:left;font-size:13px;font-weight:650}.tooltab span:first-child{width:20px;text-align:center;font-size:16px}.tooltab:hover{background:#171e2b;color:#fff}.tooltab.active{background:#1d2a1b;border-color:#344a2c;color:var(--accent)}.file-card{margin-top:24px;padding:13px;border:1px solid var(--line);border-radius:12px;background:#111824}.file-title{font-size:12px;font-weight:750;overflow-wrap:anywhere}.file-meta{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5}.dropzone{margin-top:14px;border:1px dashed #43516b;border-radius:12px;padding:18px 12px;text-align:center;background:#111824}.dropzone strong{display:block;font-size:12px;margin:7px 0 4px}.dropzone p{font-size:10px;color:var(--muted);line-height:1.5;margin:0 0 12px}.drop-icon{font-size:22px;color:var(--accent)}
+.stage-area{min-width:0;padding:22px;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 42%,#172033 0%,#0c111b 65%)}.stage-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.stage-title{font-size:13px;font-weight:800}.stage-sub{font-size:11px;color:var(--muted);margin-top:4px}.stage-tools{display:flex;gap:7px;align-items:center}.canvas-wrap{flex:1;min-height:420px;display:grid;place-items:center;position:relative;border:1px solid #273247;border-radius:14px;overflow:hidden;background-color:#101723;background-image:linear-gradient(45deg,#151e2c 25%,transparent 25%),linear-gradient(-45deg,#151e2c 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#151e2c 75%),linear-gradient(-45deg,transparent 75%,#151e2c 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}
+canvas{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;height:auto;object-fit:contain;box-shadow:0 18px 60px #0008}.empty-state{max-width:340px;text-align:center;padding:30px}.empty-state .big{font-size:42px}.empty-state h2{font-size:19px;margin:12px 0 7px}.empty-state p{font-size:12px;color:var(--muted);line-height:1.6}.statusline{min-height:24px;color:#b9dca3;font-size:11px;padding-top:10px}.stage-foot{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:10px;gap:12px}
+.panel{display:none}.panel.active{display:block}.panel-heading{font-size:15px;font-weight:800;margin:2px 0 5px}.panel-desc{font-size:11px;color:var(--muted);line-height:1.55;margin:0 0 20px}.control{margin:18px 0}.control-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:10px;color:#d5dced}.val{color:var(--accent);font-variant-numeric:tabular-nums;font-size:11px}input[type=range]{width:100%;accent-color:var(--accent);height:4px;cursor:pointer}input[type=number],select{width:100%;background:#0d131e;border:1px solid #303c52;color:var(--text);border-radius:8px;padding:9px;font-size:12px;outline:none}input:focus,select:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;color:var(--muted);margin:0 0 6px}.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.preset{border:1px solid var(--line);border-radius:9px;background:#111824;color:#cbd5e8;padding:10px 7px;font-size:11px;text-align:left}.preset:hover,.preset.selected{border-color:var(--accent);color:var(--accent)}.preset small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.divider{height:1px;background:var(--line);margin:20px 0}.hint{font-size:10px;color:var(--muted);line-height:1.6}.export-card{border:1px solid var(--line);background:#101722;border-radius:11px;padding:12px;margin:14px 0}.export-card strong{font-size:12px}.checkrow{display:flex;align-items:center;gap:8px;font-size:11px;color:#c6d0e2;margin:12px 0}.checkrow input{accent-color:var(--accent)}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#202b3d;border:1px solid #43516b;color:#edf2fc;padding:11px 16px;border-radius:10px;font-size:12px;box-shadow:0 10px 40px #0008;z-index:10;opacity:0;pointer-events:none;transition:opacity .2s}.toast.show{opacity:1}
+@media(max-width:1050px){.workspace{grid-template-columns:205px minmax(0,1fr)}.rightbar{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.rightbar .section-label{grid-column:1/-1}.panel.active{grid-column:1/-1}.stage-area{min-height:600px}}
+@media(max-width:680px){.topbar{height:auto;min-height:62px;padding:12px 14px}.privacy-pill{display:none}.workspace{display:flex;flex-direction:column}.leftbar{border-right:0;border-bottom:1px solid var(--line);padding:12px}.toolnav{display:flex;overflow:auto}.tooltab{width:auto;white-space:nowrap;padding:9px 11px}.leftbar .section-label{display:none}.file-card{display:none}.dropzone{display:none}.stage-area{padding:12px;min-height:480px}.canvas-wrap{min-height:340px}.rightbar{display:block;padding:17px}.top-actions .btn:not(.primary){display:none}.stage-foot{font-size:9px}}
+</style>
 </head>
 <body>
-<main>
-  <header class="top">
-    <div><div class="eyebrow">ZERO / CREATIVE STUDIO</div><h1>Editor Foto</h1><p>Alat koreksi foto dasar — versi awal.</p></div>
-    <a href="./index.html">Kembali ke dashboard</a>
-  </header>
-  <div class="privacy"><strong>Privasi:</strong> foto dibuka dan diproses langsung di browser perangkat ini. File tidak dikirim ke server ZERO atau layanan AI.</div>
-  <div class="layout">
-    <section class="panel" aria-label="Pratinjau foto">
-      <div class="stage" id="stage"><div class="empty" id="empty">Pilih foto untuk mulai mengedit.</div><canvas id="preview" hidden></canvas></div>
-      <div class="status" id="status" role="status" aria-live="polite"></div>
-    </section>
-    <aside class="panel">
-      <label for="photo">Pilih foto</label>
-      <input id="photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif">
-      <p class="hint">Format: JPEG, PNG, WebP, AVIF jika didukung browser. Batas awal 30 MB.</p>
-      <div id="controls" hidden>
-        <label for="brightness">Brightness <span class="value" id="brightnessValue">100%</span></label>
-        <input id="brightness" type="range" min="0" max="200" value="100">
-        <label for="contrast">Contrast <span class="value" id="contrastValue">100%</span></label>
-        <input id="contrast" type="range" min="0" max="200" value="100">
-        <label for="saturation">Saturation <span class="value" id="saturationValue">100%</span></label>
-        <input id="saturation" type="range" min="0" max="200" value="100">
-        <div class="actions">
-          <button id="rotate" type="button">Putar 90°</button>
-          <button id="reset" type="button">Reset</button>
-          <button id="download" class="primary" type="button">Ekspor PNG</button>
-        </div>
-        <p class="hint">Ekspor menghasilkan salinan PNG. File asli tidak diubah.</p>
-      </div>
-    </aside>
-  </div>
-  <p class="hint">Batas versi awal: belum ada retouch AI, penghapusan objek, layer, crop, atau editing video. Jangan tutup halaman sebelum ekspor selesai.</p>
+<div class="app">
+<header class="topbar">
+ <a class="brand" href="./index.html" aria-label="ZERO dashboard"><div class="mark">Z</div><div><div class="brandname">ZERO STUDIO</div><div class="crumb">Creative workspace / Photo editor</div></div></a>
+ <div class="top-actions"><span class="privacy-pill">● LOCAL PROCESSING · PRIVATE</span><button class="btn square" id="undo" title="Undo (Ctrl+Z)" disabled>↶</button><button class="btn square" id="redo" title="Redo (Ctrl+Y)" disabled>↷</button><button class="btn" id="resetAll">Reset</button><button class="btn primary" id="topExport">Export ↗</button></div>
+</header>
+<div class="workspace">
+<aside class="leftbar">
+ <div class="section-label">Workspace</div>
+ <nav class="toolnav" aria-label="Editor tools">
+  <button class="tooltab active" data-panel="adjust"><span>◐</span> Adjust</button>
+  <button class="tooltab" data-panel="filters"><span>✧</span> Looks</button>
+  <button class="tooltab" data-panel="transform"><span>⤢</span> Transform</button>
+  <button class="tooltab" data-panel="export"><span>⇧</span> Export</button>
+ </nav>
+ <div class="dropzone" id="dropzone"><div class="drop-icon">↥</div><strong>Drop your image here</strong><p>JPG, PNG, WebP, AVIF<br>Maximum 30 MB · 40 MP</p><button class="btn" id="browse">Choose image</button></div>
+ <div class="file-card"><div class="section-label">Current file</div><div class="file-title" id="fileName">No image selected</div><div class="file-meta" id="fileMeta">Your original stays on this device.</div></div>
+ <p class="hint">ZERO runs edits in your browser. Your photos are never uploaded.</p>
+</aside>
+<main class="stage-area">
+ <div class="stage-head"><div><div class="stage-title">Canvas</div><div class="stage-sub" id="canvasMeta">Ready for your next idea</div></div><div class="stage-tools"><button class="btn square" id="compare" title="Hold to compare original" disabled>◉</button><button class="btn square" id="fit" title="Fit canvas">⌗</button></div></div>
+ <div class="canvas-wrap" id="stage">
+  <div class="empty-state" id="empty"><div class="big">✳</div><h2>Make something worth seeing.</h2><p>Bring a photo into ZERO and shape the light, color and composition. Everything stays on your device.</p><button class="btn primary" id="startUpload">Open an image</button></div>
+  <canvas id="preview" hidden></canvas>
+ </div>
+ <div class="statusline" id="status" role="status" aria-live="polite"></div>
+ <div class="stage-foot"><span>ZERO PHOTO ENGINE · BROWSER RENDER</span><span id="dimensions">No canvas</span></div>
 </main>
+<aside class="rightbar">
+ <div class="section-label">Inspector / Controls</div>
+ <section class="panel active" id="panel-adjust">
+  <h2 class="panel-heading">Light & color</h2><p class="panel-desc">Fine-tune the image with precise, non-destructive controls.</p>
+  <div class="control"><div class="control-head"><label for="brightness">Brightness</label><output class="val" id="brightnessValue">100%</output></div><input id="brightness" type="range" min="0" max="200" value="100"></div>
+  <div class="control"><div class="control-head"><label for="contrast">Contrast</label><output class="val" id="contrastValue">100%</output></div><input id="contrast" type="range" min="0" max="200" value="100"></div>
+  <div class="control"><div class="control-head"><label for="saturation">Saturation</label><output class="val" id="saturationValue">100%</output></div><input id="saturation" type="range" min="0" max="200" value="100"></div>
+  <div class="control"><div class="control-head"><label for="warmth">Warmth</label><output class="val" id="warmthValue">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
+  <div class="control"><div class="control-head"><label for="sharpness">Soft focus</label><output class="val" id="sharpnessValue">0 px</output></div><input id="sharpness" type="range" min="0" max="4" step=".5" value="0"></div>
+  <div class="divider"></div><div class="action-grid"><button class="btn" id="auto">Auto tone</button><button class="btn" id="resetAdjust">Reset adjustments</button></div>
+ </section>
+ <section class="panel" id="panel-filters">
+  <h2 class="panel-heading">Creative looks</h2><p class="panel-desc">A starting point for a consistent visual mood. You can fine-tune it in Adjust.</p>
+  <div class="preset-grid">
+   <button class="preset" data-preset="original">Original<small>Clean and natural</small></button>
+   <button class="preset" data-preset="cinema">Cinematic<small>Deep contrast</small></button>
+   <button class="preset" data-preset="vivid">Vivid<small>Rich color</small></button>
+   <button class="preset" data-preset="mono">Mono<small>Black & white</small></button>
+   <button class="preset" data-preset="warm">Golden hour<small>Warm highlights</small></button>
+   <button class="preset" data-preset="soft">Soft matte<small>Gentle finish</small></button>
+  </div>
+  <div class="divider"></div><div class="control"><div class="control-head"><label for="fade">Look intensity</label><output class="val" id="fadeValue">100%</output></div><input id="fade" type="range" min="0" max="100" value="100"></div>
+  <p class="hint">Looks are browser-native color treatments, not AI-generated effects.</p>
+ </section>
+ <section class="panel" id="panel-transform">
+  <h2 class="panel-heading">Composition</h2><p class="panel-desc">Rotate, flip, crop to a useful aspect ratio or resize the output.</p>
+  <div class="section-label">Rotate & flip</div><div class="action-grid"><button class="btn" id="rotateLeft">↶ Rotate 90°</button><button class="btn" id="rotateRight">↷ Rotate 90°</button><button class="btn" id="flipH">↔ Flip horizontal</button><button class="btn" id="flipV">↕ Flip vertical</button></div>
+  <div class="divider"></div><div class="section-label">Crop ratio</div><div class="preset-grid"><button class="preset crop" data-ratio="free">Free</button><button class="preset crop" data-ratio="1">1:1 Square</button><button class="preset crop" data-ratio="0.8">4:5 Portrait</button><button class="preset crop" data-ratio="1.7777778">16:9 Wide</button><button class="preset crop" data-ratio="1.5">3:2 Photo</button><button class="preset crop" data-ratio="1.3333333">4:3 Classic</button></div>
+  <div class="divider"></div><div class="section-label">Output dimensions</div><div class="field-row"><div class="field"><label for="outWidth">Width (px)</label><input id="outWidth" type="number" min="1" max="8000" value="0"></div><div class="field"><label for="outHeight">Height (px)</label><input id="outHeight" type="number" min="1" max="8000" value="0"></div></div><label class="checkrow"><input type="checkbox" id="lockRatio" checked> Lock aspect ratio</label><button class="btn" id="applySize" style="width:100%">Apply dimensions</button>
+  <p class="hint">Crop ratio trims evenly from the center. Original image remains untouched.</p>
+ </section>
+ <section class="panel" id="panel-export">
+  <h2 class="panel-heading">Export your work</h2><p class="panel-desc">Choose a format and quality. Export is generated locally on this device.</p>
+  <div class="export-card"><strong>File format</strong><div class="control"><select id="format"><option value="image/png">PNG · Lossless</option><option value="image/jpeg">JPEG · Smaller file</option><option value="image/webp">WebP · Modern</option></select></div>
+  <div class="control"><div class="control-head"><label for="quality">Quality</label><output class="val" id="qualityValue">92%</output></div><input id="quality" type="range" min="50" max="100" value="92"></div></div>
+  <div class="export-card"><strong>Export summary</strong><p class="hint" id="exportSummary">No image loaded yet.</p></div>
+  <button class="btn primary" id="download" style="width:100%;padding:12px">Download image ↗</button>
+  <p class="hint">PNG ignores the quality setting. Transparent pixels are preserved in PNG; JPEG uses a solid background.</p>
+ </section>
+</aside>
+</div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
-(() => {
-  "use strict";
-  const MAX_BYTES = 30 * 1024 * 1024;
-  const MAX_PIXELS = 40_000_000;
-  const fileInput = document.getElementById("photo");
-  const canvas = document.getElementById("preview");
-  const ctx = canvas.getContext("2d");
-  const empty = document.getElementById("empty");
-  const controls = document.getElementById("controls");
-  const status = document.getElementById("status");
-  const sliders = ["brightness", "contrast", "saturation"];
-  let sourceImage = null;
-  let sourceUrl = null;
-  let rotation = 0;
-
-  function announce(message) { status.textContent = message; }
-  function render() {
-    if (!sourceImage) return;
-    const rotated = Math.abs(rotation % 180) === 90;
-    const width = sourceImage.naturalWidth;
-    const height = sourceImage.naturalHeight;
-    canvas.width = rotated ? height : width;
-    canvas.height = rotated ? width : height;
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(rotation * Math.PI / 180);
-    ctx.filter = sliders.map(name => {
-      const filterName = name === "saturation" ? "saturate" : name;
-      return filterName + "(" + document.getElementById(name).value + "%)";
-    }).join(" ");
-    ctx.drawImage(sourceImage, -width / 2, -height / 2, width, height);
-    ctx.restore();
-    sliders.forEach(name => {
-      document.getElementById(name + "Value").textContent = document.getElementById(name).value + "%";
-    });
-  }
-
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-    if (!/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
-      announce("Format tidak didukung. Pilih JPEG, PNG, WebP, atau AVIF.");
-      fileInput.value = "";
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      announce("File melebihi batas 30 MB untuk versi awal.");
-      fileInput.value = "";
-      return;
-    }
-    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-    sourceUrl = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      if (image.naturalWidth * image.naturalHeight > MAX_PIXELS) {
-        URL.revokeObjectURL(sourceUrl);
-        sourceUrl = null;
-        fileInput.value = "";
-        announce("Resolusi foto terlalu besar untuk versi awal (maksimal 40 megapiksel).");
-        return;
-      }
-      sourceImage = image;
-      rotation = 0;
-      sliders.forEach(name => { document.getElementById(name).value = 100; });
-      canvas.hidden = false;
-      empty.hidden = true;
-      controls.hidden = false;
-      render();
-      announce("Foto berhasil dibuka secara lokal. Tidak ada upload ke server.");
-    };
-    image.onerror = () => announce("Foto tidak dapat dibaca oleh browser.");
-    image.src = sourceUrl;
-  });
-
-  sliders.forEach(name => document.getElementById(name).addEventListener("input", render));
-  document.getElementById("rotate").addEventListener("click", () => { rotation = (rotation + 90) % 360; render(); });
-  document.getElementById("reset").addEventListener("click", () => {
-    sliders.forEach(name => { document.getElementById(name).value = 100; });
-    rotation = 0;
-    render();
-    announce("Pengaturan dikembalikan ke nilai awal.");
-  });
-  document.getElementById("download").addEventListener("click", () => {
-    if (!sourceImage) return;
-    canvas.toBlob(blob => {
-      if (!blob) { announce("Ekspor gagal. Coba browser lain atau foto yang lebih kecil."); return; }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "zero-edit-" + Date.now() + ".png";
-      link.click();
-      URL.revokeObjectURL(url);
-      announce("Ekspor PNG dimulai.");
-    }, "image/png");
-  });
-  window.addEventListener("beforeunload", () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); });
+(()=>{"use strict";
+const MAX_BYTES=30*1024*1024,MAX_PIXELS=40000000,MAX_OUTPUT=8000;
+const $=id=>document.getElementById(id),canvas=$("preview"),ctx=canvas.getContext("2d",{alpha:true});
+const sliders=["brightness","contrast","saturation","warmth","sharpness"];
+const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0};
+let image=null,objectUrl=null,file=null,rotation=0,flipH=false,flipV=false,cropRatio=null,outW=0,outH=0,history=[],historyIndex=-1,rendering=false,look="original",lookIntensity=100;
+function state(){return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,outW,outH,look,lookIntensity}}
+function applyState(s){sliders.forEach(k=>$(k).value=s.values[k]);rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;$("outWidth").value=outW||"";$("outHeight").value=outH||"";$("fade").value=lookIntensity;updateLabels();render()}
+function pushHistory(){if(!image)return;const s=state();if(historyIndex>=0&&JSON.stringify(history[historyIndex])===JSON.stringify(s))return;history=history.slice(0,historyIndex+1);history.push(s);if(history.length>40)history.shift();historyIndex=history.length-1;historyButtons()}
+function historyButtons(){$("undo").disabled=historyIndex<=0;$("redo").disabled=historyIndex>=history.length-1}
+function toast(s){const t=$("toast");t.textContent=s;t.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400)}
+function announce(s){$("status").textContent=s}
+function updateLabels(){sliders.forEach(k=>{const v=+$(k).value;$(k+"Value").textContent=k==="sharpness"?v+" px":k==="warmth"?(v>0?"+":"")+v:v+"%"});$("fadeValue").textContent=lookIntensity+"%";$("qualityValue").textContent=$("quality").value+"%"}
+function cropRect(w,h){if(!cropRatio)return{x:0,y:0,w,h};const ratio=cropRatio,source=w/h;if(source>ratio){const nw=h*ratio;return{x:(w-nw)/2,y:0,w:nw,h}}const nh=w/ratio;return{x:0,y:(h-nh)/2,w,h:nh}}
+function filters(){const b=+$("brightness").value,c=+$("contrast").value,s=+$("saturation").value,sh=+$("sharpness").value;let f=[];if(look==="cinema")f=["contrast(118%)","saturate(82%)","brightness(96%)"];if(look==="vivid")f=["contrast(108%)","saturate(145%)"];if(look==="mono")f=["grayscale(100%)","contrast(112%)"];if(look==="warm")f=["sepia(24%)","saturate(112%)","brightness(103%)"];if(look==="soft")f=["contrast(88%)","saturate(88%)","brightness(104%)"];const base="brightness("+b+"%) contrast("+c+"%) saturate("+s+"%)";const intensity=lookIntensity/100;const lookFilter=f.length?f.join(" "):"";return [base,lookFilter,"blur("+sh+"px)"].filter(Boolean).join(" ")}
+function render(){if(!image||rendering)return;rendering=true;try{const iw=image.naturalWidth,ih=image.naturalHeight,r=cropRect(iw,ih),rot=Math.abs(rotation%180)===90;let sw=Math.max(1,Math.round(r.w)),sh=Math.max(1,Math.round(r.h));let w=rot?sh:sw,h=rot?sw:sh;if(outW&&outH){w=outW;h=outH}else if(outW){h=Math.max(1,Math.round(w*outW/(rot?sh:sw)));w=outW}else if(outH){w=Math.max(1,Math.round(h*outH/(rot?sw:sh)));h=outH}
+if(w>MAX_OUTPUT||h>MAX_OUTPUT||w*h>MAX_PIXELS){announce("Ukuran output terlalu besar. Maksimal 8.000 px per sisi dan 40 MP.");rendering=false;return}
+canvas.width=w;canvas.height=h;ctx.save();ctx.clearRect(0,0,w,h);ctx.translate(w/2,h/2);ctx.rotate(rotation*Math.PI/180);ctx.scale(flipH?-1:1,flipV?-1:1);ctx.filter=filters();ctx.drawImage(image,r.x,r.y,r.w,r.h,-(rot?h:w)/2,-(rot?w:h)/2,rot?h:w,rot?w:h);ctx.restore();const warm=+$("warmth").value;if(warm){ctx.save();ctx.globalCompositeOperation="soft-light";ctx.fillStyle=warm>0?"rgba(255,150,65,"+(Math.abs(warm)/350)+")":"rgba(80,150,255,"+(Math.abs(warm)/400)+")";ctx.fillRect(0,0,w,h);ctx.restore()}
+$("dimensions").textContent=w+" × "+h+" px";$("canvasMeta").textContent=file?file.name+" · "+w+" × "+h+" px":"Ready";$("exportSummary").textContent=w+" × "+h+" px · "+$("format").selectedOptions[0].textContent;$("outWidth").value=w;$("outHeight").value=h;updateLabels()
+}catch(e){announce("Render gagal: "+e.message)}finally{rendering=false}}
+function loadFile(f){if(!f)return;if(!/^image\/(jpeg|png|webp|avif)$/.test(f.type)){toast("Pilih file JPEG, PNG, WebP, atau AVIF.");return}if(f.size>MAX_BYTES){toast("File melebihi batas 30 MB.");return}const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{if(img.naturalWidth*img.naturalHeight>MAX_PIXELS){URL.revokeObjectURL(url);toast("Resolusi terlalu besar (maksimal 40 MP).");return}if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=url;image=img;file=f;rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;sliders.forEach(k=>$(k).value=defaults[k]);$("fade").value=100;$("empty").hidden=true;canvas.hidden=false;$("compare").disabled=false;$("fileName").textContent=f.name;$("fileMeta").textContent=(f.size/1024/1024).toFixed(2)+" MB · "+img.naturalWidth+" × "+img.naturalHeight+" px";$("outWidth").value=img.naturalWidth;$("outHeight").value=img.naturalHeight;history=[];historyIndex=-1;render();pushHistory();announce("Image loaded locally. Ready to edit.");toast("Image opened successfully.")};img.onerror=()=>{URL.revokeObjectURL(url);toast("Browser tidak dapat membaca file ini.")};img.src=url}
+function update(){if(!image)return;render();pushHistory()}
+function resetAll(){if(!image)return;sliders.forEach(k=>$(k).value=defaults[k]);rotation=0;flipH=false;flipV=false;cropRatio=null;outW=0;outH=0;look="original";lookIntensity=100;$("fade").value=100;render();pushHistory();toast("All edits reset.")}
+function exportImage(){if(!image){toast("Open an image first.");return}const type=$("format").value,q=+$("quality").value/100;canvas.toBlob(blob=>{if(!blob){toast("Export failed. Try a smaller image.");return}const url=URL.createObjectURL(blob),a=document.createElement("a"),ext=type==="image/jpeg"?"jpg":type==="image/webp"?"webp":"png";a.href=url;a.download="zero-studio-"+Date.now()+"."+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Export ready · "+(blob.size/1024/1024).toFixed(2)+" MB");announce("Exported "+ext.toUpperCase()+" successfully.")},type,type==="image/png"?undefined:q)}
+$("browse").onclick=$("startUpload").onclick=()=>$("photo").click();
+const input=document.createElement("input");input.type="file";input.id="photo";input.accept="image/jpeg,image/png,image/webp,image/avif";input.hidden=true;document.body.appendChild(input);input.addEventListener("change",()=>{loadFile(input.files[0]);input.value=""});
+$("dropzone").addEventListener("click",e=>{if(e.target.closest("button"))return;input.click()});["dragenter","dragover"].forEach(ev=>$("stage").addEventListener(ev,e=>{e.preventDefault();$("stage").style.borderColor="#a9f36c"}));["dragleave","drop"].forEach(ev=>$("stage").addEventListener(ev,e=>{e.preventDefault();$("stage").style.borderColor=""}));$("stage").addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));$("dropzone").addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));
+document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tooltab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id==="panel-"+b.dataset.panel))}));
+sliders.forEach(k=>$(k).addEventListener("input",()=>{render();if(k!=="sharpness")$(k+"Value").textContent=$(k).value+(k==="warmth"?"":"%")}));sliders.forEach(k=>$(k).addEventListener("change",pushHistory));
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{if(!image)return;look=b.dataset.preset;const map={original:[100,100,100,0,0],cinema:[96,118,82,4,0],vivid:[100,108,145,0,0],mono:[100,112,0,0,0],warm:[103,100,112,22,0],soft:[104,88,88,5,0]};sliders.forEach((k,i)=>$(k).value=map[look][i]);document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x===b));update();toast(b.textContent.trim()+" look applied.")}));
+$("fade").addEventListener("input",()=>{lookIntensity=+$("fade").value;render()});$("fade").addEventListener("change",pushHistory);
+$("rotateLeft").onclick=()=>{if(image){rotation=(rotation+270)%360;update()}};$("rotateRight").onclick=()=>{if(image){rotation=(rotation+90)%360;update()}};$("flipH").onclick=()=>{if(image){flipH=!flipH;update()}};$("flipV").onclick=()=>{if(image){flipV=!flipV;update()}};
+document.querySelectorAll(".crop").forEach(b=>b.onclick=()=>{if(!image)return;cropRatio=b.dataset.ratio==="free"?null:+b.dataset.ratio;document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",x===b));outW=0;outH=0;update()});
+$("applySize").onclick=()=>{if(!image)return;const w=+$("outWidth").value,h=+$("outHeight").value;if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>MAX_OUTPUT||h>MAX_OUTPUT||w*h>MAX_PIXELS){toast("Dimensions invalid. Use 1–8000 px and max 40 MP.");return}outW=w;outH=h;update();toast("Output dimensions applied.")};
+$("lockRatio").addEventListener("change",()=>{if(!$("lockRatio").checked||!image)return;const w=+$("outWidth").value,h=+$("outHeight").value;if(w&&h){$("outHeight").value=Math.round(w*canvas.height/canvas.width)}});
+$("auto").onclick=()=>{if(!image)return;$("brightness").value=104;$("contrast").value=108;$("saturation").value=108;$("warmth").value=2;update();toast("Auto tone preset applied.")};
+$("resetAdjust").onclick=()=>{sliders.forEach(k=>$(k).value=defaults[k]);update()};
+$("resetAll").onclick=resetAll;$("download").onclick=$("topExport").onclick=exportImage;
+$("undo").onclick=()=>{if(historyIndex>0){historyIndex--;applyState(history[historyIndex]);historyButtons();toast("Undo")}};$("redo").onclick=()=>{if(historyIndex<history.length-1){historyIndex++;applyState(history[historyIndex]);historyButtons();toast("Redo")}};
+$("compare").addEventListener("pointerdown",()=>{if(image){render();ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height)}});["pointerup","pointerleave","pointercancel"].forEach(ev=>$("compare").addEventListener(ev,render));
+$("fit").onclick=()=>{if(image){canvas.style.maxHeight="calc(100vh - 230px)";toast("Canvas fitted to workspace.")}};
+$("quality").oninput=updateLabels;$("format").onchange=()=>{$("quality").disabled=$("format").value==="image/png";updateLabels()};
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();$("undo").click()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();$("redo").click()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();exportImage()}});
+window.addEventListener("beforeunload",()=>{if(objectUrl)URL.revokeObjectURL(objectUrl)});
+updateLabels();
 })();
 </script>
 </body>
