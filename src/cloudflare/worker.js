@@ -38,7 +38,11 @@ export default {
       return json(STATUS);
     }
     if (env?.ASSETS && typeof env.ASSETS.fetch === "function") {
-      return env.ASSETS.fetch(request);
+      const assetResponse = await env.ASSETS.fetch(request);
+      if (assetResponse.status === 404) {
+        return json({ error: "not_found" }, 404);
+      }
+      return assetResponse;
     }
     return json({ error: "not_found" }, 404);
   }
