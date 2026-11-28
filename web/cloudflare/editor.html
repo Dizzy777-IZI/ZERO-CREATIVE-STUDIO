@@ -47,7 +47,7 @@ canvas{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;he
   <canvas id="preview" hidden></canvas>
  </div>
  <div class="statusline" id="status" role="status" aria-live="polite"></div>
- <div class="stage-foot"><span>ZERO PHOTO ENGINE · BROWSER RENDER</span><span id="dimensions">No canvas</span></div>
+ <div class="stage-foot"><span>ZERO PHOTO ENGINE · PREVIEW ≤ 1.6 MP · SOURCE ≤ 24 MP</span><span id="dimensions">No canvas · EXPORT ≤ 24 MP / 6,000 PX</span></div>
 </main>
 <aside class="rightbar">
  <div class="section-label">Inspector / Controls</div>
@@ -260,7 +260,14 @@ async function loadFile(f){
    const pixels=width*height;
    if(!width||!height||pixels>MAX_INPUT_PIXELS)throw new Error("Resolusi tidak valid atau melebihi 24 MP.");
    const scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(width,height),Math.sqrt(PREVIEW_MAX_PIXELS/pixels));
-   preview=await createImageBitmap(full,{resizeWidth:Math.max(1,Math.round(width*scale)),resizeHeight:Math.max(1,Math.round(height*scale)),resizeQuality:"high"});
+   const previewWidth=Math.max(1,Math.round(width*scale)),previewHeight=Math.max(1,Math.round(height*scale));
+   try{
+    preview=await createImageBitmap(full,{resizeWidth:previewWidth,resizeHeight:previewHeight,resizeQuality:"high"});
+   }catch{
+    const thumb=document.createElement("canvas");thumb.width=previewWidth;thumb.height=previewHeight;
+    const thumbCtx=thumb.getContext("2d");if(!thumbCtx)throw new Error("Canvas preview tidak tersedia.");
+    thumbCtx.drawImage(full,0,0,previewWidth,previewHeight);preview=thumb;
+   }
    full.close();full=null;
   }else{
    const url=URL.createObjectURL(f),img=new Image();
