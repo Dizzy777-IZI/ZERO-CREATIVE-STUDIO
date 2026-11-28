@@ -153,11 +153,11 @@ test("crop mode displays a proportional composition guide over the canvas", () =
 });
 
 test("static assets receive a strict CSP and browser privacy protections", () => {
-  const policy = securityHeaders.match(/Content-Security-Policy:\\s*([^\\n]+)/)?.[1];
+  const policy = securityHeaders.match(/Content-Security-Policy:\s*([^\n]+)/)?.[1];
   assert.ok(policy, "Cloudflare _headers defines a Content-Security-Policy");
   const scriptHash = createHash("sha256").update(script, "utf8").digest("base64");
   assert.ok(policy.includes("'sha256-" + scriptHash + "'"), "CSP hash must match the exact inline editor script");
-  const scriptDirective = policy.match(/(?:^|;\\s*)script-src\\s+([^;]+)/)?.[1] || "";
+  const scriptDirective = policy.match(/(?:^|;\s*)script-src\s+([^;]+)/)?.[1] || "";
   assert.match(scriptDirective, /'self'/);
   assert.doesNotMatch(scriptDirective, /unsafe-inline|unsafe-eval/);
   assert.match(policy, /img-src[^;]*blob:/);
@@ -170,7 +170,7 @@ test("static assets receive a strict CSP and browser privacy protections", () =>
     "Referrer-Policy: no-referrer", "Cross-Origin-Opener-Policy: same-origin",
     "Cross-Origin-Resource-Policy: same-origin", "X-Robots-Tag: noindex, nofollow"
   ]) assert.ok(securityHeaders.includes(header), "missing browser security header: " + header);
-  assert.match(securityHeaders, /Permissions-Policy: camera=\\(\\), microphone=\\(\\), geolocation=\\(\\)/);
+  assert.match(securityHeaders, /Permissions-Policy: camera=\(\), microphone=\(\), geolocation=\(\)/);
 });
 
 test("photo editor protects unsaved work and provides a lightweight vignette retouch control", () => {
