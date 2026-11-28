@@ -99,7 +99,7 @@ the audit fails rather than returning a potentially incomplete account view.
 ## Validation
 
 ```bash
-PYTHONPATH=src python -m unittest tests.test_bybit_readonly -v
+PYTHONPATH=src python -m unittest discover -s tests -p 'test_bybit_readonly.py' -v
 ```
 
 The unit tests use a fake session and make no network calls. They verify that
