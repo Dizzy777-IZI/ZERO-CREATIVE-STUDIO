@@ -4,25 +4,36 @@ import { test } from "node:test";
 
 const html = await readFile(new URL("../web/cloudflare/editor.html", import.meta.url), "utf8");
 
-test("photo editor exposes local image input and supported formats", () => {
-  assert.match(html, /type="file" accept="image\/jpeg,image\/png,image\/webp,image\/avif"/);
-  assert.match(html, /MAX_BYTES = 30 \* 1024 \* 1024/);
-  assert.match(html, /MAX_PIXELS = 40_000_000/);
-  assert.match(html, /URL\.createObjectURL\(file\)/);
+test("photo editor accepts supported local image formats with resource limits", () => {
+  assert.match(html, /input\.type\s*=\s*"file"/);
+  assert.match(html, /image\/jpeg,image\/png,image\/webp,image\/avif/);
+  assert.match(html, /MAX_BYTES\s*=\s*30\s*\*\s*1024\s*\*\s*1024/);
+  assert.match(html, /MAX_PIXELS\s*=\s*40000000/);
+  assert.match(html, /URL\.createObjectURL\(f\)/);
+  assert.match(html, /URL\.revokeObjectURL/);
 });
 
-test("photo editor includes non-destructive basic adjustments and export", () => {
-  for (const control of ["brightness", "contrast", "saturation", "rotate", "reset", "download"]) {
+test("photo editor provides adjustments, looks, transforms, history and export", () => {
+  for (const control of [
+    "brightness", "contrast", "saturation", "warmth", "sharpness",
+    "rotateLeft", "rotateRight", "flipH", "flipV", "applySize",
+    "undo", "redo", "download", "format", "quality"
+  ]) {
     assert.match(html, new RegExp('id="' + control + '"'));
   }
-  assert.match(html, /filterName = name === "saturation" \? "saturate" : name/);
-  assert.match(html, /canvas\.toBlob/);
-  assert.match(html, /link\.download = "zero-edit-/);
+  for (const feature of ["cinema", "vivid", "mono", "warm", "soft", "cropRect", "pushHistory", "canvas.toBlob"]) {
+    assert.ok(html.includes(feature), "missing feature: " + feature);
+  }
+  assert.match(html, /MAX_OUTPUT\s*=\s*8000/);
+  assert.match(html, /40\s*MP/);
 });
 
-test("photo editor does not upload media or call external APIs", () => {
-  assert.doesNotMatch(html, /fetch\s*\(/);
+test("photo editor keeps image processing local and has no network upload path", () => {
+  assert.doesNotMatch(html, /\bfetch\s*\(/);
   assert.doesNotMatch(html, /XMLHttpRequest/);
+  assert.doesNotMatch(html, /WebSocket/);
   assert.doesNotMatch(html, /https?:\/\//);
-  assert.match(html, /Tidak ada upload ke server/);
+  assert.match(html, /Local processing/i);
+  assert.match(html, /Your original stays on this device/i);
+  assert.match(html, /canvas\.toBlob/);
 });
