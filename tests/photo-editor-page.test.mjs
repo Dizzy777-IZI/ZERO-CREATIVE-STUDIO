@@ -137,8 +137,8 @@ test("fixed-ratio crop can be repositioned by dragging the canvas and persists i
     "Dragging canvas repositions the crop framing", "Undo restores previous crop framing",
     "Redo reapplies crop framing", "geser foto langsung di canvas"
   ]) assert.ok(script.includes(feature), "missing crop interaction feature: " + feature);
-  assert.match(script, /return \{x:maxX\*cropPanX,y:0,w:nw,h,maxX,maxY:0\}/);
-  assert.match(script, /return \{x:0,y:maxY\*cropPanY,w,h:nh,maxX:0,maxY\}/);
+  assert.match(script, /return\{x:maxX\*cropPanX,y:0,w:nw,h,maxX,maxY:0\}/);
+  assert.match(script, /return\{x:0,y:maxY\*cropPanY,w,h:nh,maxX:0,maxY\}/);
 });
 
 test("inline photo editor script parses without syntax errors", () => {
