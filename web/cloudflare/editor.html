@@ -220,6 +220,7 @@ function drawVignette(target,w,h,original=false){
  gradient.addColorStop(1,"rgba(0,0,0,"+(amount*0.72)+")");
  target.save();target.fillStyle=gradient;target.fillRect(0,0,w,h);target.restore();
 }
+/* Row-banded pixel pass: sharpening and tonal grading share one bounded buffer. */
 function drawSharpen(target,w,h,original=false){
  const amount=original?0:Math.max(0,Math.min(100,+$("sharpen").value))/100;
  const highlights=original?0:Math.max(-100,Math.min(100,+$("highlights").value))/100;
@@ -292,8 +293,8 @@ function drawTo(target,original=false,background=null,source=previewImage,source
   c.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
   c.fillRect(0,0,w,h);c.restore();
  }
- drawVignette(c,w,h,original);
  drawSharpen(c,w,h,original);
+ drawVignette(c,w,h,original);
  return size;
 }
 function render(original=false,interactive=false){
@@ -318,8 +319,8 @@ function render(original=false,interactive=false){
    ctx.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
    ctx.fillRect(0,0,w,h);ctx.restore();
   }
-  drawVignette(ctx,w,h,original);
   drawSharpen(ctx,w,h,original);
+  drawVignette(ctx,w,h,original);
   if(!interactive){
    $("dimensions").textContent=size.w+" × "+size.h+" px";
    $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
