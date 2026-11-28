@@ -287,11 +287,13 @@ test("background mask supports selection inversion, inverted brush semantics and
 
 
 test("local person segmentation is lazy, pinned, hash-verified and isolated from photo uploads", () => {
-  for (const control of ["aiSegment", "aiStatus", "aiThreshold"]) {
+  for (const control of ["aiSegment", "aiStatus", "aiThreshold", "aiConsent"]) {
     assert.ok(html.includes('id="' + control + '"'), "missing local AI control: " + control);
   }
 
   assert.ok(script.includes('function runLocalPersonSegmentation()'));
+  assert.ok(script.includes('if(!previewImage||!$("aiConsent").checked||aiSegmentationBusy)return'));
+  assert.ok(html.includes("I agree to MediaPipe usage and performance metrics being sent to Google."));
   assert.ok(script.includes('new Worker("/ai/segmenter.worker.js",{type:"module"'));
   assert.ok(script.includes('worker.postMessage({type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap},[bitmap])'));
   assert.ok(script.includes("function drawSegmentationInput(target)"));
