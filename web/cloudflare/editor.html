@@ -78,6 +78,7 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
   <div class="control"><div class="control-head"><label for="saturation">Saturation</label><output class="val" id="saturationValue">100%</output></div><input id="saturation" type="range" min="0" max="200" value="100"></div>
   <div class="control"><div class="control-head"><label for="warmth">Warmth</label><output class="val" id="warmthValue">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
   <div class="control"><div class="control-head"><label for="sharpness">Soft focus</label><output class="val" id="sharpnessValue">0 px</output></div><input id="sharpness" type="range" min="0" max="4" step=".5" value="0"></div>
+  <div class="control"><div class="control-head"><label for="sharpen">Sharpen</label><output class="val" id="sharpenValue">0%</output></div><input id="sharpen" type="range" min="0" max="100" value="0"></div>
   <div class="control"><div class="control-head"><label for="vignette">Vignette</label><output class="val" id="vignetteValue">0%</output></div><input id="vignette" type="range" min="0" max="100" value="0"></div>
   <div class="divider"></div><div class="action-grid"><button class="btn" id="auto">Auto tone</button><button class="btn" id="resetAdjust">Reset adjustments</button></div>
  </section>
@@ -125,8 +126,8 @@ const INTERACTIVE_PREVIEW_MAX_PIXELS=640000;
 const $=id=>document.getElementById(id);
 const canvas=$("preview");
 const ctx=canvas.getContext("2d",{alpha:true});
-const sliders=["brightness","contrast","saturation","warmth","sharpness","vignette"];
-const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0,vignette:0};
+const sliders=["brightness","contrast","saturation","warmth","sharpness","sharpen","vignette"];
+const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0,sharpen:0,vignette:0};
 let previewImage=null,file=null,sourceWidth=0,sourceHeight=0,rotation=0,flipH=false,flipV=false;
 let cropRatio=null,cropPanX=0.5,cropPanY=0.5,outW=0,outH=0,history=[],historyIndex=-1;
 let cropDrag=null;
@@ -215,6 +216,36 @@ function drawVignette(target,w,h,original=false){
  gradient.addColorStop(1,"rgba(0,0,0,"+(amount*0.72)+")");
  target.save();target.fillStyle=gradient;target.fillRect(0,0,w,h);target.restore();
 }
+function drawSharpen(target,w,h,original=false){
+ const amount=original?0:Math.max(0,Math.min(100,+$("sharpen").value))/100;
+ if(!amount)return;
+ const strength=amount*1.25,bandHeight=128,context=target;
+ let savedRow=null;
+ for(let top=0;top<h;top+=bandHeight){
+  const rows=Math.min(bandHeight,h-top),readTop=top>0?top-1:0;
+  const raw=context.getImageData(0,readTop,w,Math.min(h,top+rows+1)-readTop);
+  const rawData=raw.data,rawHeight=raw.height;
+  if(top>0&&savedRow)rawData.set(savedRow,0);
+  const output=context.createImageData(w,rows),out=output.data,rowOffset=top>0?1:0;
+  for(let y=0;y<rows;y++){
+   const row=rowOffset+y,northRow=Math.max(0,row-1),southRow=Math.min(rawHeight-1,row+1);
+   for(let x=0;x<w;x++){
+    const leftX=Math.max(0,x-1),rightX=Math.min(w-1,x+1);
+    const center=(row*w+x)*4,north=(northRow*w+x)*4,south=(southRow*w+x)*4;
+    const west=(row*w+leftX)*4,east=(row*w+rightX)*4,dest=(y*w+x)*4;
+    for(let channel=0;channel<3;channel++){
+     const value=rawData[center+channel];
+     const blurred=(value*4+rawData[north+channel]+rawData[south+channel]+rawData[west+channel]+rawData[east+channel])/8;
+     out[dest+channel]=Math.max(0,Math.min(255,Math.round(value+(value-blurred)*strength)));
+    }
+    out[dest+3]=rawData[center+3];
+   }
+  }
+  const finalRow=(rowOffset+rows-1)*w*4;
+  savedRow=rawData.slice(finalRow,finalRow+w*4);
+  context.putImageData(output,0,top);
+ }
+}
 function drawTo(target,original=false,background=null,source=previewImage,sourceW=sourceWidth,sourceH=sourceHeight){
  const size=outputSize();
  const w=size.w,h=size.h;
@@ -241,6 +272,7 @@ function drawTo(target,original=false,background=null,source=previewImage,source
   c.fillRect(0,0,w,h);c.restore();
  }
  drawVignette(c,w,h,original);
+ drawSharpen(c,w,h,original);
  return size;
 }
 function render(original=false,interactive=false){
@@ -266,6 +298,7 @@ function render(original=false,interactive=false){
    ctx.fillRect(0,0,w,h);ctx.restore();
   }
   drawVignette(ctx,w,h,original);
+  drawSharpen(ctx,w,h,original);
   if(!interactive){
    $("dimensions").textContent=size.w+" × "+size.h+" px";
    $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
@@ -611,6 +644,19 @@ async function runEditorSelfTest(){
   await afterFrame();
   const cornerAfter=ctx.getImageData(1,1,1,1).data[0];
   verify("Vignette darkens the image edges",cornerAfter<cornerBefore&&hasPixels());
+  const sharpenBefore=new Uint8ClampedArray(ctx.getImageData(0,0,canvas.width,canvas.height).data);
+  $("sharpen").value=85;
+  $("sharpen").dispatchEvent(new Event("input",{bubbles:true}));
+  $("sharpen").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const sharpenAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let sharpenChangedPixels=false;
+  for(let i=0;i<sharpenAfter.length;i++){if(sharpenAfter[i]!==sharpenBefore[i]){sharpenChangedPixels=true;break;}}
+  verify("Sharpen changes edge detail in preview",sharpenChangedPixels&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores the previous sharpen amount",+$("sharpen").value===0&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo restores the sharpen amount",+$("sharpen").value===85&&hasPixels());
   const cinema=document.querySelector('[data-preset="cinema"]');
   verify("Cinematic preset control exists",!!cinema);cinema.click();await afterFrame();
   verify("Look preset render keeps preview visible",look==="cinema"&&hasPixels());
