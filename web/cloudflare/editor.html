@@ -109,7 +109,9 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
   <p class="hint">Pilih rasio, lalu geser foto langsung di canvas untuk mengatur framing. Gunakan Undo/Redo untuk membatalkan posisi crop. Foto asli tetap tidak berubah.</p>
  </section>
  <section class="panel" id="panel-background">
-  <h2 class="panel-heading">Background mask</h2><p class="panel-desc">Paint over the subject to protect it. Erase unwanted mask areas, restore missed parts, then remove the unselected background. Brush edits stay local.</p>
+  <h2 class="panel-heading">AI Background &amp; Mask</h2><p class="panel-desc">Detect people locally with a lightweight on-device model, then refine the mask manually before removing the background.</p>
+  <div class="export-card"><strong>Local AI person detection</strong><p class="hint">First use downloads a pinned MediaPipe runtime and a verified 250 KB model. Your photo stays in this tab and is never uploaded. Optimized for people and portraits, not arbitrary objects.</p><button class="btn primary" id="aiSegment" style="width:100%" disabled>Detect person locally</button><p class="hint" id="aiStatus" role="status" aria-live="polite">Load a photo to enable local AI detection. Manual brush tools work without the AI runtime.</p><div class="control"><div class="control-head"><label for="aiThreshold">AI edge threshold</label><output class="val" id="aiThresholdValue">45%</output></div><input id="aiThreshold" type="range" min="10" max="90" step="1" value="45" disabled></div></div>
+  <div class="divider"></div><div class="section-label">Manual refinement</div>
   <div class="control"><div class="control-head"><label for="maskMode">Brush mode</label></div><select id="maskMode"><option value="add">Add / protect</option><option value="erase">Erase selection</option><option value="restore">Restore subject</option></select></div>
   <div class="control"><div class="control-head"><label for="brushSize">Brush size</label><output class="val" id="brushSizeValue">64 px</output></div><input id="brushSize" type="range" min="8" max="180" step="2" value="64"></div>
   <div class="control"><div class="control-head"><label for="maskFeather">Edge feather</label><output class="val" id="maskFeatherValue">0 px</output></div><input id="maskFeather" type="range" min="0" max="32" step="1" value="0"></div>
@@ -118,7 +120,7 @@ input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:
   <div class="action-grid"><button class="btn primary" id="applyMask" disabled>Remove background</button><button class="btn" id="restoreMask" disabled>Restore background</button></div>
   <button class="btn" id="clearMask" style="width:100%;margin-top:8px" disabled>Clear selection</button>
   <div class="divider"></div><p class="hint" id="maskStatus">No selection yet. Choose Add / protect and paint the subject on the canvas.</p>
-  <p class="hint">Manual masking, not AI segmentation. Finish crop, rotate, flip and resize before painting. Changing framing clears the mask to prevent misalignment. PNG and WebP preserve transparency; JPEG uses a white background.</p>
+  <p class="hint">Finish crop, rotate, flip and resize before selection. Changing framing clears the mask to prevent misalignment. Use Add, Erase, Restore, Invert and Edge Feather to refine AI or manual selections. PNG and WebP preserve transparency; JPEG uses a white background.</p>
  </section>
  <section class="panel" id="panel-export">
   <h2 class="panel-heading">Export your work</h2><p class="panel-desc">Choose a format and quality. Export is generated locally on this device.</p>
@@ -152,11 +154,13 @@ let cropDrag=null;
 let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
 let loadSequence=0,lastDimensionEdited="width",exporting=false,savedStateSignature=null;
 let maskCanvas=null,maskOverlayCanvas=null,maskEffectiveCanvas=null,maskStrokes=[],maskApplied=false,maskInverted=false,maskRevision=0,maskPointer=null,lastGeometrySignature=null;
+let aiMaskData=null,segmenterWorker=null,aiSegmentationBusy=false,aiSegmentationRequestId=0;
 const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000;
 function state(){
- return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskInverted,maskFeather:+$("maskFeather").value,maskRevision};
+ return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskInverted,maskFeather:+$("maskFeather").value,maskRevision,aiMaskData,aiThreshold:+$("aiThreshold").value};
 }
-function currentStateSignature(){const snapshot=state();delete snapshot.maskStrokes;return JSON.stringify(snapshot);}
+function currentStateSignature(){const snapshot=state();delete snapshot.maskStrokes;delete snapshot.aiMaskData;return JSON.stringify(snapshot);}
+function hasMaskSelection(){return !!aiMaskData||maskStrokes.length>0;}
 function hasUnsavedChanges(){return !!previewImage&&savedStateSignature!==null&&currentStateSignature()!==savedStateSignature;}
 function clamp01(value){return Math.max(0,Math.min(1,value));}
 function cropRect(w,h){
