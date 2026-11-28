@@ -481,7 +481,7 @@ function historyButtons(){
  $("undo").disabled=historyIndex<=0;
  $("redo").disabled=historyIndex>=history.length-1;
 }
-function historyComparable(snapshot){const copy={...snapshot};delete copy.maskStrokes;return JSON.stringify(copy);}
+function historyComparable(snapshot){const copy={...snapshot};delete copy.maskStrokes;delete copy.aiMaskData;return JSON.stringify(copy);}
 function pushHistory(){
  if(!previewImage)return;
  const snapshot=state();
@@ -501,7 +501,7 @@ function applyState(s){
  rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;
  cropPanX=clamp01(s.cropPanX??0.5);cropPanY=clamp01(s.cropPanY??0.5);
  outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;
- maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskInverted=!!s.maskInverted;$("maskFeather").value=s.maskFeather??0;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();resizeMaskCanvasForCurrentGeometry();redrawMaskStrokes();
+ maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskInverted=!!s.maskInverted;aiMaskData=s.aiMaskData||null;$("aiThreshold").value=s.aiThreshold??45;$("maskFeather").value=s.maskFeather??0;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();resizeMaskCanvasForCurrentGeometry();redrawMaskStrokes();
  $("fade").value=lookIntensity;syncSelections();syncCropInteraction();
  syncDimensionFields();updateLabels();scheduleRender();
 }
@@ -512,6 +512,84 @@ function announce(message){
 function toast(message){
  const t=$("toast");t.textContent=message;t.classList.add("show");
  clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400);
+}
+function drawSegmentationInput(target){
+ if(!previewImage||!maskCanvas)throw new Error("Open a photo before running local AI detection.");
+ const w=maskCanvas.width,h=maskCanvas.height;
+ target.width=w;target.height=h;
+ const inputContext=target.getContext("2d",{alpha:false});
+ if(!inputContext)throw new Error("Canvas input untuk AI tidak tersedia.");
+ inputContext.fillStyle="#fff";inputContext.fillRect(0,0,w,h);
+ const rect=cropRect(previewImage.width,previewImage.height),rotated=Math.abs(rotation%180)===90;
+ inputContext.save();inputContext.translate(w/2,h/2);inputContext.rotate(rotation*Math.PI/180);
+ inputContext.scale(flipH?-1:1,flipV?-1:1);inputContext.filter="none";
+ inputContext.drawImage(previewImage,rect.x,rect.y,rect.w,rect.h,-(rotated?h:w)/2,-(rotated?w:h)/2,rotated?h:w,rotated?w:h);
+ inputContext.restore();
+ return target;
+}
+function handleLocalAIWorkerMessage(event){
+ const message=event.data||{};
+ if(message.id!==aiSegmentationRequestId)return;
+ if(message.type==="STATUS"){
+  $("aiStatus").textContent=String(message.message||"Processing locally…");
+  return;
+ }
+ aiSegmentationBusy=false;
+ if(message.type==="ERROR"){
+  $("aiStatus").textContent="AI detection failed: "+String(message.message||"Unknown error")+" Manual brush remains available.";
+  updateMaskActions();return;
+ }
+ if(message.type!=="RESULT")return;
+ if(message.photoSequence!==loadSequence){
+  $("aiStatus").textContent="AI result discarded because the source photo changed.";
+  updateMaskActions();return;
+ }
+ try{
+  const width=Number(message.width),height=Number(message.height),confidence=new Uint8Array(message.confidence);
+  if(!width||!height||width*height!==confidence.length||confidence.length>256*256)throw new Error("AI mask dimensions are invalid.");
+  aiMaskData={width,height,data:confidence};
+  maskStrokes=[];maskApplied=false;maskInverted=false;maskRevision++;
+  $("maskFeather").value=0;redrawMaskStrokes();updateMaskActions();
+  scheduleRender(false,false);pushHistory();
+  $("aiStatus").textContent="Person mask generated locally ("+width+" × "+height+"). Refine with brush and threshold, then remove the background.";
+  announce("Local AI person mask ready. Refine the selection before export.");
+ }catch(error){
+  $("aiStatus").textContent="AI mask could not be applied: "+error.message+" Manual brush remains available.";
+  updateMaskActions();
+ }
+}
+function createLocalAIWorker(){
+ if(segmenterWorker)return segmenterWorker;
+ const worker=new Worker("/ai/segmenter.worker.js",{type:"module",name:"ZERO local person segmentation"});
+ worker.addEventListener("message",handleLocalAIWorkerMessage);
+ worker.addEventListener("error",event=>{
+  aiSegmentationBusy=false;
+  $("aiStatus").textContent="Local AI worker could not start: "+(event.message||"worker error")+". Manual brush remains available.";
+  updateMaskActions();
+ });
+ segmenterWorker=worker;return worker;
+}
+async function runLocalPersonSegmentation(){
+ if(!previewImage||aiSegmentationBusy)return;
+ if(hasMaskSelection()&&!window.confirm("Replace the current background selection with a new AI person mask? You can Undo afterward."))return;
+ aiSegmentationBusy=true;updateMaskActions();
+ $("aiStatus").textContent="Preparing a small local preview for AI…";
+ const requestId=++aiSegmentationRequestId,photoSequence=loadSequence;
+ let bitmap=null,inputCanvas=null;
+ try{
+  inputCanvas=drawSegmentationInput(document.createElement("canvas"));
+  bitmap=await createImageBitmap(inputCanvas);
+  inputCanvas.width=0;inputCanvas.height=0;inputCanvas=null;
+  const worker=createLocalAIWorker();
+  worker.postMessage({type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap},[bitmap]);
+  bitmap=null;
+ }catch(error){
+  if(bitmap&&typeof bitmap.close==="function")bitmap.close();
+  if(inputCanvas){inputCanvas.width=0;inputCanvas.height=0;}
+  aiSegmentationBusy=false;
+  $("aiStatus").textContent="Local AI could not start: "+(error.message||"Unknown error")+". Manual brush remains available.";
+  updateMaskActions();
+ }
 }
 async function loadFile(f,{skipConfirm=false}={}){
  if(!f)return;
@@ -573,7 +651,7 @@ function update(push=true){if(!previewImage)return;const nextGeometry=geometrySi
 function resetAll(){
  if(!previewImage)return;
  sliders.forEach(k=>$(k).value=defaults[k]);
- maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();
+ maskStrokes=[];aiMaskData=null;maskApplied=false;maskInverted=false;$("aiThreshold").value=45;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();
  rotation=0;flipH=false;flipV=false;cropRatio=null;cropPanX=0.5;cropPanY=0.5;outW=0;outH=0;look="original";lookIntensity=100;
  $("fade").value=100;syncSelections();syncCropInteraction();
  syncDimensionFields();update();toast("Semua edit dikembalikan.");
