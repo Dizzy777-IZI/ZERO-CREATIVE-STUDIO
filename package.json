@@ -1,0 +1,15 @@
+{
+  "name": "zero-creative-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ZERO Creative Studio Cloudflare Worker control plane",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.169.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

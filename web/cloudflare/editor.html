@@ -1,167 +1,1100 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="description" content="Editor foto lokal ZERO Creative Studio. Foto diproses di browser dan tidak diunggah.">
-  <title>Editor Foto — ZERO Creative Studio</title>
-  <style>
-    :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#eef2ff;background:#0b1020;color-scheme:dark}
-    *{box-sizing:border-box}body{margin:0;padding:20px;min-height:100vh}
-    main{max-width:1100px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-    a{color:#a8c7ff}.eyebrow{color:#93a4c7;letter-spacing:.14em;font-size:.72rem;font-weight:700}
-    h1{margin:.35rem 0;font-size:clamp(1.8rem,5vw,2.7rem)}p{color:#b8c4dc;line-height:1.55}
-    .privacy{border:1px solid #28634c;background:#10291f;color:#a7f3d0;border-radius:12px;padding:12px 14px;margin:18px 0}
-    .layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:16px}
-    .panel{background:#111a2d;border:1px solid #28334d;border-radius:16px;padding:16px;min-width:0}
-    .stage{min-height:360px;display:grid;place-items:center;background:#080d18;border:1px dashed #3a4968;border-radius:12px;overflow:hidden}
-    canvas{display:block;max-width:100%;max-height:70vh;object-fit:contain}
-    .empty{text-align:center;padding:28px;color:#93a4c7}
-    label{display:block;font-size:.9rem;color:#d6def0;margin:16px 0 7px}
-    input[type=file]{width:100%;padding:10px;border:1px solid #394968;border-radius:10px;background:#0b1425}
-    input[type=range]{width:100%;accent-color:#91b8ff}
-    .value{float:right;color:#a8c7ff;font-variant-numeric:tabular-nums}
-    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-    button{border:1px solid #405273;border-radius:10px;background:#1b2942;color:#eef2ff;padding:10px 13px;font-weight:650;cursor:pointer}
-    button.primary{background:#dbeafe;color:#10213b;border-color:#dbeafe}
-    button:disabled{opacity:.45;cursor:not-allowed}
-    .hint{font-size:.82rem;color:#93a4c7}.status{min-height:1.4em;color:#a7f3d0;font-size:.88rem}
-    @media(max-width:760px){body{padding:12px}.layout{grid-template-columns:1fr}.stage{min-height:260px}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#090b12">
+<meta name="description" content="ZERO Studio — editor foto lokal dengan kontrol kreatif dan ekspor berkualitas.">
+<title>Photo Studio — ZERO</title>
+<style>
+:root{color-scheme:dark;--bg:#090b12;--surface:#10141f;--panel:#141a28;--panel2:#1a2232;--line:#283247;--muted:#8995aa;--text:#edf2fc;--accent:#a9f36c;--accent2:#c7ff9c;--blue:#91b8ff;--danger:#ff8f9b;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+.app{min-height:100vh;display:flex;flex-direction:column}.topbar{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);background:#0d111a;gap:18px;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:34px;height:34px;border-radius:10px;background:var(--accent);color:#10170c;display:grid;place-items:center;font-weight:950;font-size:18px}.brandname{font-weight:850;letter-spacing:.13em;font-size:13px}.crumb{color:var(--muted);font-size:12px;margin-top:3px}.top-actions{display:flex;align-items:center;gap:8px}.privacy-pill{font-size:11px;color:#c8f4a5;background:#17251a;border:1px solid #304a2b;padding:7px 10px;border-radius:99px;white-space:nowrap}
+.btn{border:1px solid #354158;color:var(--text);background:#1a2232;padding:9px 13px;border-radius:9px;font-size:12px;font-weight:700;transition:.16s}.btn:hover:not(:disabled){border-color:#71809c;background:#222e43}.btn:disabled{opacity:.35;cursor:not-allowed}.btn.primary{background:var(--accent);border-color:var(--accent);color:#12180e}.btn.primary:hover{background:var(--accent2)}.btn.ghost{background:transparent}.btn.square{width:36px;height:36px;padding:0;display:grid;place-items:center;font-size:16px}.btn.active{border-color:var(--accent);color:var(--accent);background:#1b2819}
+.workspace{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;min-height:calc(100vh - 68px);flex:1}.leftbar,.rightbar{background:var(--surface);padding:20px 17px;min-width:0}.leftbar{border-right:1px solid var(--line)}.rightbar{border-left:1px solid var(--line)}.section-label{font-size:10px;font-weight:850;letter-spacing:.15em;color:#7e8ba2;text-transform:uppercase;margin:3px 0 15px}.toolnav{display:grid;gap:6px}.tooltab{width:100%;display:flex;align-items:center;gap:11px;border:1px solid transparent;border-radius:10px;background:transparent;color:#aab5c8;padding:11px 12px;text-align:left;font-size:13px;font-weight:650}.tooltab span:first-child{width:20px;text-align:center;font-size:16px}.tooltab:hover{background:#171e2b;color:#fff}.tooltab.active{background:#1d2a1b;border-color:#344a2c;color:var(--accent)}.file-card{margin-top:24px;padding:13px;border:1px solid var(--line);border-radius:12px;background:#111824}.file-title{font-size:12px;font-weight:750;overflow-wrap:anywhere}.file-meta{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5}.dropzone{margin-top:14px;border:1px dashed #43516b;border-radius:12px;padding:18px 12px;text-align:center;background:#111824}.dropzone strong{display:block;font-size:12px;margin:7px 0 4px}.dropzone p{font-size:10px;color:var(--muted);line-height:1.5;margin:0 0 12px}.drop-icon{font-size:22px;color:var(--accent)}
+.stage-area{min-width:0;padding:22px;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 42%,#172033 0%,#0c111b 65%)}.stage-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.stage-title{font-size:13px;font-weight:800}.stage-sub{font-size:11px;color:var(--muted);margin-top:4px}.stage-tools{display:flex;gap:7px;align-items:center}.canvas-wrap{flex:1;min-height:420px;display:grid;place-items:center;position:relative;border:1px solid #273247;border-radius:14px;overflow:hidden;background-color:#101723;background-image:linear-gradient(45deg,#151e2c 25%,transparent 25%),linear-gradient(-45deg,#151e2c 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#151e2c 75%),linear-gradient(-45deg,transparent 75%,#151e2c 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}
+canvas{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;height:auto;object-fit:contain;box-shadow:0 18px 60px #0008}
+canvas.crop-ready{cursor:grab;touch-action:none}
+canvas.crop-panning{cursor:grabbing}
+canvas.mask-painting{cursor:crosshair;touch-action:none}
+.crop-frame{position:absolute;z-index:2;pointer-events:none;border:1px solid rgba(169,243,108,.78);border-radius:2px;box-shadow:0 0 0 1px rgba(7,11,17,.55);background-image:linear-gradient(to right,transparent 33.1%,rgba(169,243,108,.22) 33.33%,transparent 33.6%,transparent 66.4%,rgba(169,243,108,.22) 66.67%,transparent 66.9%),linear-gradient(to bottom,transparent 33.1%,rgba(169,243,108,.22) 33.33%,transparent 33.6%,transparent 66.4%,rgba(169,243,108,.22) 66.67%,transparent 66.9%)}
+.crop-frame[hidden]{display:none}.empty-state{max-width:340px;text-align:center;padding:30px}.empty-state .big{font-size:42px}.empty-state h2{font-size:19px;margin:12px 0 7px}.empty-state p{font-size:12px;color:var(--muted);line-height:1.6}.statusline{min-height:24px;color:#b9dca3;font-size:11px;padding-top:10px}.stage-foot{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:10px;gap:12px}
+.panel{display:none}.panel.active{display:block}.panel-heading{font-size:15px;font-weight:800;margin:2px 0 5px}.panel-desc{font-size:11px;color:var(--muted);line-height:1.55;margin:0 0 20px}.control{margin:18px 0}.control-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:10px;color:#d5dced}.val{color:var(--accent);font-variant-numeric:tabular-nums;font-size:11px}input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;margin:0;padding:0;background:transparent;accent-color:var(--accent);cursor:pointer;outline:none;box-shadow:none;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:#30394b}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-5px;border:2px solid #101722;border-radius:50%;background:var(--accent);box-shadow:0 0 0 1px rgba(169,243,108,.35);transition:transform .12s ease,box-shadow .12s ease}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.08)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12);box-shadow:0 0 0 3px rgba(169,243,108,.18)}
+input[type=range]::-moz-range-track{height:4px;border:0;border-radius:999px;background:#30394b}
+input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#789d54}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border:2px solid #101722;border-radius:50%;background:var(--accent);box-shadow:0 0 0 1px rgba(169,243,108,.35);transition:transform .12s ease,box-shadow .12s ease}
+input[type=range]:hover::-moz-range-thumb{transform:scale(1.08)}
+input[type=range]:active::-moz-range-thumb{transform:scale(1.12);box-shadow:0 0 0 3px rgba(169,243,108,.18)}
+input[type=range]:focus,input[type=range]:focus-visible{outline:none;box-shadow:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(169,243,108,.2)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px rgba(169,243,108,.2)}
+input[type=number],select{width:100%;background:#0d131e;border:1px solid #303c52;color:var(--text);border-radius:8px;padding:9px;font-size:12px;outline:none}
+input:not([type=range]):focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px;box-shadow:0 0 0 3px rgba(169,243,108,.08)}
+input:not([type=range]):focus,select:focus,button:focus{outline:none;box-shadow:none}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;color:var(--muted);margin:0 0 6px}.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.preset{border:1px solid var(--line);border-radius:9px;background:#111824;color:#cbd5e8;padding:10px 7px;font-size:11px;text-align:left}.preset:hover,.preset.selected{border-color:var(--accent);color:var(--accent)}.preset small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.divider{height:1px;background:var(--line);margin:20px 0}.hint{font-size:10px;color:var(--muted);line-height:1.6}.export-card{border:1px solid var(--line);background:#101722;border-radius:11px;padding:12px;margin:14px 0}.export-card strong{font-size:12px}.checkrow{display:flex;align-items:center;gap:8px;font-size:11px;color:#c6d0e2;margin:12px 0}.checkrow input{accent-color:var(--accent)}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#202b3d;border:1px solid #43516b;color:#edf2fc;padding:11px 16px;border-radius:10px;font-size:12px;box-shadow:0 10px 40px #0008;z-index:10;opacity:0;pointer-events:none;transition:opacity .2s}.toast.show{opacity:1}
+@media(max-width:1050px){.workspace{grid-template-columns:205px minmax(0,1fr)}.rightbar{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.rightbar .section-label{grid-column:1/-1}.panel.active{grid-column:1/-1}.stage-area{min-height:600px}}
+@media(max-width:680px){.topbar{height:auto;min-height:62px;padding:12px 14px}.privacy-pill{display:none}.workspace{display:flex;flex-direction:column}.leftbar{border-right:0;border-bottom:1px solid var(--line);padding:12px}.toolnav{display:flex;overflow:auto}.tooltab{width:auto;white-space:nowrap;padding:9px 11px}.leftbar .section-label{display:none}.file-card{display:none}.dropzone{display:none}.stage-area{padding:12px;min-height:480px}.canvas-wrap{min-height:340px}.rightbar{display:block;padding:17px}.top-actions .btn:not(.primary){display:none}.stage-foot{font-size:9px}}
+</style>
 </head>
 <body>
-<main>
-  <header class="top">
-    <div><div class="eyebrow">ZERO / CREATIVE STUDIO</div><h1>Editor Foto</h1><p>Alat koreksi foto dasar — versi awal.</p></div>
-    <a href="./index.html">Kembali ke dashboard</a>
-  </header>
-  <div class="privacy"><strong>Privasi:</strong> foto dibuka dan diproses langsung di browser perangkat ini. File tidak dikirim ke server ZERO atau layanan AI.</div>
-  <div class="layout">
-    <section class="panel" aria-label="Pratinjau foto">
-      <div class="stage" id="stage"><div class="empty" id="empty">Pilih foto untuk mulai mengedit.</div><canvas id="preview" hidden></canvas></div>
-      <div class="status" id="status" role="status" aria-live="polite"></div>
-    </section>
-    <aside class="panel">
-      <label for="photo">Pilih foto</label>
-      <input id="photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif">
-      <p class="hint">Format: JPEG, PNG, WebP, AVIF jika didukung browser. Batas awal 30 MB.</p>
-      <div id="controls" hidden>
-        <label for="brightness">Brightness <span class="value" id="brightnessValue">100%</span></label>
-        <input id="brightness" type="range" min="0" max="200" value="100">
-        <label for="contrast">Contrast <span class="value" id="contrastValue">100%</span></label>
-        <input id="contrast" type="range" min="0" max="200" value="100">
-        <label for="saturation">Saturation <span class="value" id="saturationValue">100%</span></label>
-        <input id="saturation" type="range" min="0" max="200" value="100">
-        <div class="actions">
-          <button id="rotate" type="button">Putar 90°</button>
-          <button id="reset" type="button">Reset</button>
-          <button id="download" class="primary" type="button">Ekspor PNG</button>
-        </div>
-        <p class="hint">Ekspor menghasilkan salinan PNG. File asli tidak diubah.</p>
-      </div>
-    </aside>
-  </div>
-  <p class="hint">Batas versi awal: belum ada retouch AI, penghapusan objek, layer, crop, atau editing video. Jangan tutup halaman sebelum ekspor selesai.</p>
+<div class="app">
+<header class="topbar">
+ <a class="brand" href="./index.html" aria-label="ZERO dashboard"><div class="mark">Z</div><div><div class="brandname">ZERO STUDIO</div><div class="crumb">Creative workspace / Photo editor</div></div></a>
+ <div class="top-actions"><span class="privacy-pill">● LOCAL PROCESSING · PRIVATE</span><button class="btn square" id="undo" title="Undo (Ctrl+Z)" disabled>↶</button><button class="btn square" id="redo" title="Redo (Ctrl+Y)" disabled>↷</button><button class="btn" id="resetAll">Reset</button><button class="btn primary" id="topExport">Export ↗</button></div>
+</header>
+<div class="workspace">
+<aside class="leftbar">
+ <div class="section-label">Workspace</div>
+ <nav class="toolnav" aria-label="Editor tools">
+  <button class="tooltab active" data-panel="adjust"><span>◐</span> Adjust</button>
+  <button class="tooltab" data-panel="filters"><span>✧</span> Looks</button>
+  <button class="tooltab" data-panel="transform"><span>⤢</span> Transform</button>
+  <button class="tooltab" data-panel="background"><span>◌</span> Background</button>
+  <button class="tooltab" data-panel="export"><span>⇧</span> Export</button>
+ </nav>
+ <div class="dropzone" id="dropzone"><div class="drop-icon">↥</div><strong>Drop your image here</strong><p>JPG, PNG, WebP, AVIF<br>Maximum 30 MB · 24 MP source</p><button class="btn" id="browse">Choose image</button></div>
+ <div class="file-card"><div class="section-label">Current file</div><div class="file-title" id="fileName">No image selected</div><div class="file-meta" id="fileMeta">Your original stays on this device.</div></div>
+ <p class="hint">ZERO processes photos locally. Your photos are never uploaded. Changes remain in this tab only. Export your work before leaving — automatic session recovery is not enabled yet.</p>
+</aside>
+<main class="stage-area">
+ <div class="stage-head"><div><div class="stage-title">Canvas</div><div class="stage-sub" id="canvasMeta">Ready for your next idea</div></div><div class="stage-tools"><button class="btn square" id="compare" title="Hold to compare original" disabled>◉</button><button class="btn square" id="fit" title="Fit canvas">⌗</button></div></div>
+ <div class="canvas-wrap" id="stage">
+  <div class="empty-state" id="empty"><div class="big">✳</div><h2>Make something worth seeing.</h2><p>Bring a photo into ZERO and shape the light, color and composition. Everything stays on your device.</p><button class="btn primary" id="startUpload">Open an image</button></div>
+  <canvas id="preview" hidden></canvas>
+  <div class="crop-frame" id="cropFrame" hidden aria-hidden="true"></div>
+ </div>
+ <div class="statusline" id="status" role="status" aria-live="polite"></div>
+ <div class="stage-foot"><span>ZERO PHOTO ENGINE · PREVIEW ≤ 1.6 MP · SOURCE ≤ 24 MP</span><span id="dimensions">No canvas · EXPORT ≤ 24 MP / 6,000 PX</span></div>
 </main>
-<script>
-(() => {
-  "use strict";
-  const MAX_BYTES = 30 * 1024 * 1024;
-  const MAX_PIXELS = 40_000_000;
-  const fileInput = document.getElementById("photo");
-  const canvas = document.getElementById("preview");
-  const ctx = canvas.getContext("2d");
-  const empty = document.getElementById("empty");
-  const controls = document.getElementById("controls");
-  const status = document.getElementById("status");
-  const sliders = ["brightness", "contrast", "saturation"];
-  let sourceImage = null;
-  let sourceUrl = null;
-  let rotation = 0;
-
-  function announce(message) { status.textContent = message; }
-  function render() {
-    if (!sourceImage) return;
-    const rotated = Math.abs(rotation % 180) === 90;
-    const width = sourceImage.naturalWidth;
-    const height = sourceImage.naturalHeight;
-    canvas.width = rotated ? height : width;
-    canvas.height = rotated ? width : height;
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(rotation * Math.PI / 180);
-    ctx.filter = sliders.map(name => {
-      const filterName = name === "saturation" ? "saturate" : name;
-      return filterName + "(" + document.getElementById(name).value + "%)";
-    }).join(" ");
-    ctx.drawImage(sourceImage, -width / 2, -height / 2, width, height);
-    ctx.restore();
-    sliders.forEach(name => {
-      document.getElementById(name + "Value").textContent = document.getElementById(name).value + "%";
-    });
+<aside class="rightbar">
+ <div class="section-label">Inspector / Controls</div>
+ <section class="panel active" id="panel-adjust">
+  <h2 class="panel-heading">Light & color</h2><p class="panel-desc">Fine-tune the image with precise, non-destructive controls.</p>
+  <div class="control"><div class="control-head"><label for="brightness">Brightness</label><output class="val" id="brightnessValue">100%</output></div><input id="brightness" type="range" min="0" max="200" value="100"></div>
+  <div class="control"><div class="control-head"><label for="contrast">Contrast</label><output class="val" id="contrastValue">100%</output></div><input id="contrast" type="range" min="0" max="200" value="100"></div>
+  <div class="control"><div class="control-head"><label for="saturation">Saturation</label><output class="val" id="saturationValue">100%</output></div><input id="saturation" type="range" min="0" max="200" value="100"></div>
+  <div class="control"><div class="control-head"><label for="warmth">Temperature</label><output class="val" id="warmthValue">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
+  <div class="control"><div class="control-head"><label for="sharpness">Soft focus</label><output class="val" id="sharpnessValue">0 px</output></div><input id="sharpness" type="range" min="0" max="4" step=".5" value="0"></div>
+  <div class="control"><div class="control-head"><label for="sharpen">Sharpen</label><output class="val" id="sharpenValue">0%</output></div><input id="sharpen" type="range" min="0" max="100" value="0"></div>
+  <div class="control"><div class="control-head"><label for="vignette">Vignette</label><output class="val" id="vignetteValue">0%</output></div><input id="vignette" type="range" min="0" max="100" value="0"></div>
+  <div class="divider"></div><div class="section-label">Color grading</div>
+  <div class="control"><div class="control-head"><label for="highlights">Highlights</label><output class="val" id="highlightsValue">0</output></div><input id="highlights" type="range" min="-100" max="100" value="0"></div>
+  <div class="control"><div class="control-head"><label for="shadows">Shadows</label><output class="val" id="shadowsValue">0</output></div><input id="shadows" type="range" min="-100" max="100" value="0"></div>
+  <div class="control"><div class="control-head"><label for="tint">Tint</label><output class="val" id="tintValue">0</output></div><input id="tint" type="range" min="-50" max="50" value="0"></div>
+  <div class="divider"></div><div class="action-grid"><button class="btn" id="auto">Auto tone</button><button class="btn" id="resetAdjust">Reset adjustments</button></div>
+ </section>
+ <section class="panel" id="panel-filters">
+  <h2 class="panel-heading">Creative looks</h2><p class="panel-desc">A starting point for a consistent visual mood. You can fine-tune it in Adjust.</p>
+  <div class="preset-grid">
+   <button class="preset" data-preset="original">Original<small>Clean and natural</small></button>
+   <button class="preset" data-preset="cinema">Cinematic<small>Deep contrast</small></button>
+   <button class="preset" data-preset="vivid">Vivid<small>Rich color</small></button>
+   <button class="preset" data-preset="mono">Mono<small>Black & white</small></button>
+   <button class="preset" data-preset="warm">Golden hour<small>Warm highlights</small></button>
+   <button class="preset" data-preset="soft">Soft matte<small>Gentle finish</small></button>
+  </div>
+  <div class="divider"></div><div class="control"><div class="control-head"><label for="fade">Look intensity</label><output class="val" id="fadeValue">100%</output></div><input id="fade" type="range" min="0" max="100" value="100"></div>
+  <p class="hint">Looks are browser-native color treatments, not AI-generated effects.</p>
+ </section>
+ <section class="panel" id="panel-transform">
+  <h2 class="panel-heading">Composition</h2><p class="panel-desc">Rotate, flip, crop to a useful aspect ratio or resize the output.</p>
+  <div class="section-label">Rotate & flip</div><div class="action-grid"><button class="btn" id="rotateLeft">↶ Rotate 90°</button><button class="btn" id="rotateRight">↷ Rotate 90°</button><button class="btn" id="flipH">↔ Flip horizontal</button><button class="btn" id="flipV">↕ Flip vertical</button></div>
+  <div class="divider"></div><div class="section-label">Crop ratio</div><div class="preset-grid"><button class="preset crop" data-ratio="free">Free</button><button class="preset crop" data-ratio="1">1:1 Square</button><button class="preset crop" data-ratio="0.8">4:5 Portrait</button><button class="preset crop" data-ratio="1.7777778">16:9 Wide</button><button class="preset crop" data-ratio="1.5">3:2 Photo</button><button class="preset crop" data-ratio="1.3333333">4:3 Classic</button></div>
+  <div class="divider"></div><div class="section-label">Output dimensions (max. 24 MP)</div><div class="field-row"><div class="field"><label for="outWidth">Width (px)</label><input id="outWidth" type="number" min="1" max="8000" value="0"></div><div class="field"><label for="outHeight">Height (px)</label><input id="outHeight" type="number" min="1" max="8000" value="0"></div></div><label class="checkrow"><input type="checkbox" id="lockRatio" checked> Lock aspect ratio</label><button class="btn" id="applySize" style="width:100%">Apply dimensions</button>
+  <p class="hint">Pilih rasio, lalu geser foto langsung di canvas untuk mengatur framing. Gunakan Undo/Redo untuk membatalkan posisi crop. Foto asli tetap tidak berubah.</p>
+ </section>
+ <section class="panel" id="panel-background">
+  <h2 class="panel-heading">AI Background &amp; Mask</h2><p class="panel-desc">Detect people locally with a lightweight on-device model, then refine the mask manually before removing the background.</p>
+  <div class="export-card"><strong>Local AI person detection</strong><p class="hint">First use downloads a pinned MediaPipe runtime (WASM about 14–15 MB) and a verified 250 KB model. The image is processed on-device and is not sent to Google. MediaPipe may send API usage/performance metrics to Google; review its <a href="https://developers.google.com/edge/mediapipe/solutions/privacy" target="_blank" rel="noopener noreferrer">privacy notice</a>. AI detection is limited to people/portraits, not arbitrary objects.</p><label class="checkrow"><input type="checkbox" id="aiConsent"> I agree to MediaPipe usage and performance metrics being sent to Google.</label><button class="btn primary" id="aiSegment" style="width:100%" disabled>Detect person locally</button><p class="hint" id="aiStatus" role="status" aria-live="polite">Load a photo to enable local AI detection. Manual brush tools work without the AI runtime.</p><div class="control"><div class="control-head"><label for="aiThreshold">AI edge threshold</label><output class="val" id="aiThresholdValue">45%</output></div><input id="aiThreshold" type="range" min="10" max="90" step="1" value="45" disabled></div></div>
+  <div class="divider"></div><div class="section-label">Manual refinement</div>
+  <div class="control"><div class="control-head"><label for="maskMode">Brush mode</label></div><select id="maskMode"><option value="add">Add / protect</option><option value="erase">Erase selection</option><option value="restore">Restore subject</option></select></div>
+  <div class="control"><div class="control-head"><label for="brushSize">Brush size</label><output class="val" id="brushSizeValue">64 px</output></div><input id="brushSize" type="range" min="8" max="180" step="2" value="64"></div>
+  <div class="control"><div class="control-head"><label for="maskFeather">Edge feather</label><output class="val" id="maskFeatherValue">0 px</output></div><input id="maskFeather" type="range" min="0" max="32" step="1" value="0"></div>
+  <label class="checkrow"><input type="checkbox" id="maskOverlay" checked> Show green selection overlay</label>
+  <div class="divider"></div><button class="btn" id="invertMask" style="width:100%;margin-bottom:8px" disabled>Invert selection</button>
+  <div class="action-grid"><button class="btn primary" id="applyMask" disabled>Remove background</button><button class="btn" id="restoreMask" disabled>Restore background</button></div>
+  <button class="btn" id="clearMask" style="width:100%;margin-top:8px" disabled>Clear selection</button>
+  <div class="divider"></div><p class="hint" id="maskStatus">No selection yet. Choose Add / protect and paint the subject on the canvas.</p>
+  <p class="hint">Finish crop, rotate, flip and resize before selection. Changing framing clears the mask to prevent misalignment. Use Add, Erase, Restore, Invert and Edge Feather to refine AI or manual selections. PNG and WebP preserve transparency; JPEG uses a white background.</p>
+ </section>
+ <section class="panel" id="panel-export">
+  <h2 class="panel-heading">Export your work</h2><p class="panel-desc">Choose a format and quality. Export is generated locally on this device.</p>
+  <div class="export-card"><strong>File format</strong><div class="control"><select id="format"><option value="image/png">PNG · Lossless</option><option value="image/jpeg">JPEG · Smaller file</option><option value="image/webp">WebP · Modern</option></select></div>
+  <div class="control"><div class="control-head"><label for="quality">Quality</label><output class="val" id="qualityValue">92%</output></div><input id="quality" type="range" min="50" max="100" value="92"></div></div>
+  <div class="export-card"><strong>Export summary</strong><p class="hint" id="exportSummary">No image loaded yet.</p></div>
+  <button class="btn primary" id="download" style="width:100%;padding:12px">Download image ↗</button>
+  <p class="hint">PNG ignores the quality setting. Transparent pixels are preserved in PNG; JPEG uses a white background. Browser preview is capped near 1.6 MP and export at 24 MP / 6,000 px to reduce memory use.</p>
+ </section>
+</aside>
+</div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>(()=>{"use strict";
+const MAX_BYTES=30*1024*1024;
+const MAX_INPUT_PIXELS=24000000;
+const MAX_OUTPUT_DIMENSION=6000;
+const MAX_OUTPUT_PIXELS=24000000;
+const PREVIEW_MAX_DIMENSION=1400;
+const PREVIEW_MAX_PIXELS=1600000;
+const INTERACTIVE_PREVIEW_MAX_DIMENSION=1000;
+const INTERACTIVE_PREVIEW_MAX_PIXELS=640000;
+const $=id=>document.getElementById(id);
+const canvas=$("preview");
+const ctx=canvas.getContext("2d",{alpha:true});
+const sliders=["brightness","contrast","saturation","warmth","sharpness","sharpen","vignette","highlights","shadows","tint"];
+const defaults={brightness:100,contrast:100,saturation:100,warmth:0,sharpness:0,sharpen:0,vignette:0,highlights:0,shadows:0,tint:0};
+let previewImage=null,file=null,sourceWidth=0,sourceHeight=0,rotation=0,flipH=false,flipV=false;
+let cropRatio=null,cropPanX=0.5,cropPanY=0.5,outW=0,outH=0,history=[],historyIndex=-1;
+let cropDrag=null;
+let look="original",lookIntensity=100,framePending=0,pendingOriginal=false,pendingInteractive=false;
+let loadSequence=0,lastDimensionEdited="width",exporting=false,savedStateSignature=null;
+let maskCanvas=null,maskOverlayCanvas=null,maskEffectiveCanvas=null,maskStrokes=[],maskApplied=false,maskInverted=false,maskRevision=0,maskPointer=null,lastGeometrySignature=null;
+let aiMaskData=null,segmenterWorker=null,aiSegmentationBusy=false,aiSegmentationRequestId=0,aiSegmentationTimeout=null;
+const AI_SEGMENTATION_TIMEOUT_MS=60000;
+const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000;
+function state(){
+ return {values:Object.fromEntries(sliders.map(k=>[k,+$(k).value])),rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,look,lookIntensity,maskStrokes,maskApplied,maskInverted,maskFeather:+$("maskFeather").value,maskRevision,aiMaskData,aiThreshold:+$("aiThreshold").value};
+}
+function currentStateSignature(){const snapshot=state();delete snapshot.maskStrokes;delete snapshot.aiMaskData;return JSON.stringify(snapshot);}
+function hasMaskSelection(){return !!aiMaskData||maskStrokes.length>0;}
+function hasUnsavedChanges(){return !!previewImage&&savedStateSignature!==null&&currentStateSignature()!==savedStateSignature;}
+function clamp01(value){return Math.max(0,Math.min(1,value));}
+function cropRect(w,h){
+ if(!cropRatio)return{x:0,y:0,w,h,maxX:0,maxY:0};
+ const source=w/h;
+ if(source>cropRatio){
+  const nw=h*cropRatio,maxX=Math.max(0,w-nw);
+  return{x:maxX*cropPanX,y:0,w:nw,h,maxX,maxY:0};
+ }
+ const nh=w/cropRatio,maxY=Math.max(0,h-nh);
+ return{x:0,y:maxY*cropPanY,w,h:nh,maxX:0,maxY};
+}
+function syncCropInteraction(){
+ const ready=!!previewImage&&cropRatio!==null&&$("panel-transform").classList.contains("active");
+ canvas.classList.toggle("crop-ready",ready);
+ if(!ready)canvas.classList.remove("crop-panning");
+ const frame=$("cropFrame");
+ if(!frame)return;
+ frame.hidden=!ready;
+ if(ready){
+  const stage=$("stage"),stageBounds=stage.getBoundingClientRect(),bounds=canvas.getBoundingClientRect();
+  frame.style.left=(bounds.left-stageBounds.left-stage.clientLeft)+"px";
+  frame.style.top=(bounds.top-stageBounds.top-stage.clientTop)+"px";
+  frame.style.width=bounds.width+"px";
+  frame.style.height=bounds.height+"px";
+ }
+}
+function cropDeltaFromPointer(dx,dy,rect,bounds){
+ const rotated=((rotation%360)+360)%360;
+ let sx=0,sy=0;
+ if(rotated===90){sx=dy*rect.w/Math.max(1,bounds.height);sy=-dx*rect.h/Math.max(1,bounds.width);}
+ else if(rotated===180){sx=-dx*rect.w/Math.max(1,bounds.width);sy=-dy*rect.h/Math.max(1,bounds.height);}
+ else if(rotated===270){sx=-dy*rect.w/Math.max(1,bounds.height);sy=dx*rect.h/Math.max(1,bounds.width);}
+ else{sx=dx*rect.w/Math.max(1,bounds.width);sy=dy*rect.h/Math.max(1,bounds.height);}
+ return {x:flipH?-sx:sx,y:flipV?-sy:sy};
+}
+function baseSize(){
+ const r=cropRect(sourceWidth,sourceHeight);
+ return Math.abs(rotation%180)===90?{w:r.h,h:r.w}:{w:r.w,h:r.h};
+}
+function boundedSize(w,h){
+ const scale=Math.min(1,MAX_OUTPUT_DIMENSION/Math.max(w,h),Math.sqrt(MAX_OUTPUT_PIXELS/(w*h)));
+ return {w:Math.max(1,Math.floor(w*scale)),h:Math.max(1,Math.floor(h*scale)),scaled:scale<1};
+}
+function outputSize(){
+ const base=baseSize();
+ let w=base.w,h=base.h;
+ if(outW>0&&outH>0){w=outW;h=outH;}
+ else if(outW>0){w=outW;h=Math.max(1,Math.round(outW*base.h/base.w));}
+ else if(outH>0){h=outH;w=Math.max(1,Math.round(outH*base.w/base.h));}
+ return boundedSize(w,h);
+}
+function syncDimensionFields(){
+ if(!previewImage)return;
+ const size=outputSize();
+ $("outWidth").value=size.w;
+ $("outHeight").value=size.h;
+}
+function filters(scale=1){
+ const b=+$("brightness").value,c=+$("contrast").value,s=+$("saturation").value,soft=+$("sharpness").value,t=lookIntensity/100;
+ let extra="";
+ if(look==="cinema")extra="contrast("+(100+18*t)+"%) saturate("+(100-18*t)+"%) brightness("+(100-4*t)+"%)";
+ if(look==="vivid")extra="contrast("+(100+8*t)+"%) saturate("+(100+45*t)+"%)";
+ if(look==="mono")extra="grayscale("+(100*t)+"%) contrast("+(100+12*t)+"%)";
+ if(look==="warm")extra="sepia("+(24*t)+"%) saturate("+(100+12*t)+"%) brightness("+(100+3*t)+"%)";
+ if(look==="soft")extra="contrast("+(100-12*t)+"%) saturate("+(100-12*t)+"%) brightness("+(100+4*t)+"%)";
+ const base="brightness("+b+"%) contrast("+c+"%) saturate("+s+"%)";
+ return [base,extra,"blur("+(soft*scale)+"px)"].filter(Boolean).join(" ");
+}
+function drawVignette(target,w,h,original=false){
+ const amount=original?0:Math.max(0,Math.min(100,+$("vignette").value))/100;
+ if(!amount)return;
+ const inner=Math.max(1,Math.min(w,h)*0.16),outer=Math.max(inner+1,Math.max(w,h)*0.74);
+ const gradient=target.createRadialGradient(w/2,h/2,inner,w/2,h/2,outer);
+ gradient.addColorStop(0,"rgba(0,0,0,0)");
+ gradient.addColorStop(1,"rgba(0,0,0,"+(amount*0.72)+")");
+ target.save();target.fillStyle=gradient;target.fillRect(0,0,w,h);target.restore();
+}
+/* Row-banded pixel pass: sharpening and tonal grading share one bounded buffer. */
+function drawSharpen(target,w,h,original=false){
+ const amount=original?0:Math.max(0,Math.min(100,+$("sharpen").value))/100;
+ const highlights=original?0:Math.max(-100,Math.min(100,+$("highlights").value))/100;
+ const shadows=original?0:Math.max(-100,Math.min(100,+$("shadows").value))/100;
+ const tint=original?0:Math.max(-50,Math.min(50,+$("tint").value))/50;
+ if(!amount&&!highlights&&!shadows&&!tint)return;
+ const strength=amount*1.25,bandHeight=128,context=target;
+ const smoothstep=(edge0,edge1,value)=>{
+  const x=Math.max(0,Math.min(1,(value-edge0)/(edge1-edge0)));
+  return x*x*(3-2*x);
+ };
+ let savedRow=null;
+ for(let top=0;top<h;top+=bandHeight){
+  const rows=Math.min(bandHeight,h-top),readTop=top>0?top-1:0;
+  const raw=context.getImageData(0,readTop,w,Math.min(h,top+rows+1)-readTop);
+  const rawData=raw.data,rawHeight=raw.height;
+  if(top>0&&savedRow)rawData.set(savedRow,0);
+  const output=context.createImageData(w,rows),out=output.data,rowOffset=top>0?1:0;
+  for(let y=0;y<rows;y++){
+   const row=rowOffset+y,northRow=Math.max(0,row-1),southRow=Math.min(rawHeight-1,row+1);
+   for(let x=0;x<w;x++){
+    const leftX=Math.max(0,x-1),rightX=Math.min(w-1,x+1);
+    const center=(row*w+x)*4,north=(northRow*w+x)*4,south=(southRow*w+x)*4;
+    const west=(row*w+leftX)*4,east=(row*w+rightX)*4,dest=(y*w+x)*4;
+    let red=0,green=0,blue=0;
+    for(let channel=0;channel<3;channel++){
+     const value=rawData[center+channel];
+     const blurred=(value*4+rawData[north+channel]+rawData[south+channel]+rawData[west+channel]+rawData[east+channel])/8;
+     const adjusted=Math.max(0,Math.min(255,value+(value-blurred)*strength));
+     if(channel===0)red=adjusted;else if(channel===1)green=adjusted;else blue=adjusted;
+    }
+    const luminance=(red*0.2126+green*0.7152+blue*0.0722)/255;
+    const highlightMask=smoothstep(0.28,0.88,luminance);
+    const shadowMask=1-smoothstep(0.12,0.62,luminance);
+    const tonalShift=(highlights*highlightMask+shadows*shadowMask)*38;
+    const tintShift=tint*20;
+    out[dest]=Math.max(0,Math.min(255,Math.round(red+tonalShift+tintShift)));
+    out[dest+1]=Math.max(0,Math.min(255,Math.round(green+tonalShift-tintShift*0.9)));
+    out[dest+2]=Math.max(0,Math.min(255,Math.round(blue+tonalShift+tintShift)));
+    out[dest+3]=rawData[center+3];
+   }
   }
+  const finalRow=(rowOffset+rows-1)*w*4;
+  savedRow=rawData.slice(finalRow,finalRow+w*4);
+  context.putImageData(output,0,top);
+ }
+}
+function maskDimensions(){
+ const size=outputSize(),scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(size.w,size.h),Math.sqrt(PREVIEW_MAX_PIXELS/(size.w*size.h)));
+ return {w:Math.max(1,Math.round(size.w*scale)),h:Math.max(1,Math.round(size.h*scale))};
+}
+function resizeMaskCanvasForCurrentGeometry(){
+ const size=maskDimensions();
+ if(!maskCanvas)maskCanvas=document.createElement("canvas");
+ if(maskCanvas.width!==size.w||maskCanvas.height!==size.h){maskCanvas.width=size.w;maskCanvas.height=size.h;}
+ if(!maskOverlayCanvas)maskOverlayCanvas=document.createElement("canvas");
+ if(!maskEffectiveCanvas)maskEffectiveCanvas=document.createElement("canvas");
+ maskOverlayCanvas.width=0;maskOverlayCanvas.height=0;maskEffectiveCanvas.width=0;maskEffectiveCanvas.height=0;
+}
+function initializeMaskCanvas(){
+ resizeMaskCanvasForCurrentGeometry();
+ maskStrokes=[];maskApplied=false;maskInverted=false;aiMaskData=null;maskRevision=0;maskPointer=null;$("maskFeather").value=0;$("maskFeatherValue").textContent="0 px";$("aiThreshold").value=45;$("aiThresholdValue").textContent="45%";
+ updateMaskActions();
+}
+function paintMaskSegment(context,stroke,from,to){
+ context.save();context.globalCompositeOperation=stroke.mode==="erase"?"destination-out":"source-over";
+ context.strokeStyle="#fff";context.fillStyle="#fff";context.lineWidth=stroke.radius*2;context.lineCap="round";context.lineJoin="round";
+ context.beginPath();context.moveTo(from.x,from.y);context.lineTo(to.x,to.y);context.stroke();
+ if(from.x===to.x&&from.y===to.y){context.beginPath();context.arc(from.x,from.y,stroke.radius,0,Math.PI*2);context.fill();}
+ context.restore();
+}
+function confidenceToAlpha(value,threshold){
+ const probability=Math.max(0,Math.min(1,value/255)),center=Math.max(0.1,Math.min(0.9,threshold/100));
+ const low=Math.max(0,center-0.18),high=Math.min(1,center+0.18);
+ const t=clamp01((probability-low)/Math.max(0.001,high-low));
+ return Math.round(t*t*(3-2*t)*255);
+}
+function drawAIMaskBase(context){
+ if(!aiMaskData||!aiMaskData.data||!aiMaskData.width||!aiMaskData.height)return;
+ const source=document.createElement("canvas");source.width=aiMaskData.width;source.height=aiMaskData.height;
+ const sourceContext=source.getContext("2d");if(!sourceContext)return;
+ const pixels=new Uint8ClampedArray(aiMaskData.width*aiMaskData.height*4),threshold=+$("aiThreshold").value;
+ for(let i=0;i<aiMaskData.data.length;i++){const offset=i*4;pixels[offset]=255;pixels[offset+1]=255;pixels[offset+2]=255;pixels[offset+3]=confidenceToAlpha(aiMaskData.data[i],threshold);}
+ sourceContext.putImageData(new ImageData(pixels,aiMaskData.width,aiMaskData.height),0,0);
+ context.drawImage(source,0,0,maskCanvas.width,maskCanvas.height);
+}
+function redrawMaskStrokes(){
+ if(!maskCanvas)return;
+ const context=maskCanvas.getContext("2d");if(!context)return;
+ context.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+ drawAIMaskBase(context);
+ for(const stroke of maskStrokes){
+  if(!stroke.points||!stroke.points.length)continue;
+  let previous=stroke.points[0];paintMaskSegment(context,stroke,previous,previous);
+  for(let i=1;i<stroke.points.length;i++){const point=stroke.points[i];paintMaskSegment(context,stroke,previous,point);previous=point;}
+ }
+ updateMaskActions();
+}
+function updateMaskActions(){
+ const apply=$("applyMask"),restore=$("restoreMask"),clear=$("clearMask"),invert=$("invertMask");
+ if(!apply||!restore||!clear||!invert)return;
+ const hasSelection=hasMaskSelection();
+ apply.disabled=!previewImage||!hasSelection||maskApplied;restore.disabled=!previewImage||!maskApplied;clear.disabled=!previewImage||!hasSelection;invert.disabled=!previewImage||!hasSelection;
+ $("aiSegment").disabled=!previewImage||!$("aiConsent").checked||aiSegmentationBusy;
+ $("aiSegment").textContent=aiSegmentationBusy?"Detecting locally…":"Detect person locally";
+ if(!$("aiConsent").checked&&!aiSegmentationBusy)$("aiStatus").textContent="AI requires your consent to MediaPipe usage/performance metrics. Manual brush remains available without AI."; 
+ $("aiThreshold").disabled=!aiMaskData;
+ $("aiThresholdValue").textContent=$("aiThreshold").value+"%";
+ invert.textContent=maskInverted?"Return to painted selection":"Invert selection";
+ $("maskFeatherValue").textContent=$("maskFeather").value+" px";
+ apply.textContent=maskApplied?"Background removed":"Remove background";
+ $("maskStatus").textContent=!hasSelection
+  ?"No selection yet. Run local person detection or choose Add / protect and paint the subject on the canvas."
+  :maskApplied
+   ?"Background masked. Use Restore subject to recover missed parts or Erase selection to remove more. Export as PNG/WebP to preserve transparency."
+   :"Selection ready. Keep painting, refine with Erase/Restore, or remove the background when ready.";
+}
+function renderEffectiveMask(w,h){
+ if(!maskCanvas||!hasMaskSelection())return null;
+ if(!maskEffectiveCanvas)maskEffectiveCanvas=document.createElement("canvas");
+ if(maskEffectiveCanvas.width!==w||maskEffectiveCanvas.height!==h){maskEffectiveCanvas.width=w;maskEffectiveCanvas.height=h;}
+ const effective=maskEffectiveCanvas.getContext("2d");if(!effective)return null;
+ effective.clearRect(0,0,w,h);
+ const feather=+$("maskFeather").value*w/Math.max(1,maskCanvas.width);
+ const featherFilter=feather>0?"blur("+feather+"px)":"none";
+ if(maskInverted){
+  effective.filter="none";effective.fillStyle="#fff";effective.fillRect(0,0,w,h);
+  effective.globalCompositeOperation="destination-out";effective.filter=featherFilter;effective.drawImage(maskCanvas,0,0,w,h);
+ }else{effective.filter=featherFilter;effective.drawImage(maskCanvas,0,0,w,h);}
+ effective.globalCompositeOperation="source-over";effective.filter="none";
+ return maskEffectiveCanvas;
+}
+function applyMaskToContext(target,w,h,effectiveMask){
+ if(!maskApplied||!effectiveMask)return;
+ target.save();target.globalCompositeOperation="destination-in";target.drawImage(effectiveMask,0,0,w,h);target.restore();
+}
+function drawMaskOverlay(target,w,h,effectiveMask){
+ if(!effectiveMask||!$("maskOverlay").checked)return;
+ if(!maskOverlayCanvas)maskOverlayCanvas=document.createElement("canvas");
+ if(maskOverlayCanvas.width!==w||maskOverlayCanvas.height!==h){maskOverlayCanvas.width=w;maskOverlayCanvas.height=h;}
+ const overlay=maskOverlayCanvas.getContext("2d");if(!overlay)return;
+ overlay.clearRect(0,0,w,h);overlay.fillStyle="rgba(169,243,108,.38)";overlay.fillRect(0,0,w,h);
+ overlay.globalCompositeOperation="destination-in";overlay.drawImage(effectiveMask,0,0,w,h);overlay.globalCompositeOperation="source-over";
+ target.drawImage(maskOverlayCanvas,0,0,w,h);
+}
+function geometrySignature(){return JSON.stringify({rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,sourceWidth,sourceHeight});}
+function clearMaskForGeometryChange(){
+ const hadSelection=hasMaskSelection();
+ if(hadSelection){maskStrokes=[];aiMaskData=null;maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;}
+ resizeMaskCanvasForCurrentGeometry();
+ if(hadSelection){redrawMaskStrokes();announce("Framing changed. The background mask was cleared; paint the subject again.");}
+}
+function drawTo(target,original=false,background=null,source=previewImage,sourceW=sourceWidth,sourceH=sourceHeight){
+ const size=outputSize();
+ const w=size.w,h=size.h;
+ if(!w||!h||w*h>MAX_OUTPUT_PIXELS||w>MAX_OUTPUT_DIMENSION||h>MAX_OUTPUT_DIMENSION)throw new Error("Output melewati batas aman 24 MP / 6.000 px.");
+ target.width=w;target.height=h;
+ const c=target.getContext("2d",{alpha:true});
+ if(!c)throw new Error("Canvas context tidak tersedia.");
+ c.save();
+ c.setTransform(1,0,0,1,0,0);
+ c.clearRect(0,0,w,h);
+ const r=cropRect(sourceW,sourceH);
+ const rotated=Math.abs(rotation%180)===90;
+ c.translate(w/2,h/2);
+ c.rotate(rotation*Math.PI/180);
+ c.scale(flipH?-1:1,flipV?-1:1);
+ c.filter=original?"none":filters(1);
+ c.drawImage(source,r.x,r.y,r.w,r.h,-(rotated?h:w)/2,-(rotated?w:h)/2,rotated?h:w,rotated?w:h);
+ c.restore();
+ const warmth=+$("warmth").value;
+ if(!original&&warmth){
+  c.save();c.globalCompositeOperation="soft-light";
+  c.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
+  c.fillRect(0,0,w,h);c.restore();
+ }
+ drawSharpen(c,w,h,original);
+ drawVignette(c,w,h,original);
+ if(!original&&hasMaskSelection()){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(c,w,h,effectiveMask);}
+ if(background){c.save();c.globalCompositeOperation="destination-over";c.fillStyle=background;c.fillRect(0,0,w,h);c.restore();}
+ return size;
+}
+function render(original=false,interactive=false){
+ if(!previewImage)return;
+ try{
+  const size=outputSize();
+  const maxDimension=interactive?INTERACTIVE_PREVIEW_MAX_DIMENSION:PREVIEW_MAX_DIMENSION;
+  const maxPixels=interactive?INTERACTIVE_PREVIEW_MAX_PIXELS:PREVIEW_MAX_PIXELS;
+  const scale=Math.min(1,maxDimension/Math.max(size.w,size.h),Math.sqrt(maxPixels/(size.w*size.h)));
+  const w=Math.max(1,Math.round(size.w*scale)),h=Math.max(1,Math.round(size.h*scale));
+  canvas.width=w;canvas.height=h;
+  const r=cropRect(previewImage.width,previewImage.height);
+  const rotated=Math.abs(rotation%180)===90;
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);
+  ctx.translate(w/2,h/2);ctx.rotate(rotation*Math.PI/180);ctx.scale(flipH?-1:1,flipV?-1:1);
+  ctx.filter=original?"none":filters(scale);
+  ctx.drawImage(previewImage,r.x,r.y,r.w,r.h,-(rotated?h:w)/2,-(rotated?w:h)/2,rotated?h:w,rotated?w:h);
+  ctx.restore();
+  const warmth=+$("warmth").value;
+  if(!original&&warmth){
+   ctx.save();ctx.globalCompositeOperation="soft-light";
+   ctx.fillStyle=warmth>0?"rgba(255,150,65,"+(Math.abs(warmth)/350)+")":"rgba(80,150,255,"+(Math.abs(warmth)/400)+")";
+   ctx.fillRect(0,0,w,h);ctx.restore();
+  }
+  drawSharpen(ctx,w,h,original);
+  drawVignette(ctx,w,h,original);
+  if(!original&&hasMaskSelection()){const effectiveMask=renderEffectiveMask(w,h);applyMaskToContext(ctx,w,h,effectiveMask);drawMaskOverlay(ctx,w,h,effectiveMask);}
+  if(!interactive){
+   $("dimensions").textContent=size.w+" × "+size.h+" px";
+   $("canvasMeta").textContent=file?file.name+" · "+size.w+" × "+size.h+" px":"Ready";
+   $("exportSummary").textContent=size.w+" × "+size.h+" px · "+$("format").selectedOptions[0].textContent+(size.scaled?" · optimized for browser memory":"");
+   if(size.scaled)announce("Output otomatis dibatasi agar ekspor tetap ringan (maks. 24 MP / 6.000 px).");
+   else announce("Preview ringan aktif · ekspor kualitas penuh sesuai ukuran output.");
+   updateLabels();
+  }
+  syncCropInteraction();
+ }catch(e){announce("Render gagal: "+e.message);}
+}
+function scheduleRender(original=false,interactive=false){
+ pendingOriginal=original;pendingInteractive=interactive;
+ if(framePending)return;
+ framePending=requestAnimationFrame(()=>{
+  const drawOriginal=pendingOriginal,drawInteractive=pendingInteractive;
+  framePending=0;render(drawOriginal,drawInteractive);
+ });
+}
+function updateLabels(){
+ sliders.forEach(k=>{
+  const v=+$(k).value;
+  $(k+"Value").textContent=k==="sharpness"?v+" px":["warmth","highlights","shadows","tint"].includes(k)?(v>0?"+":"")+v:v+"%";
+ });
+ $("fadeValue").textContent=lookIntensity+"%";
+ $("qualityValue").textContent=$("quality").value+"%";
+}
+function updateFormatControl(){
+ $("quality").disabled=$("format").value==="image/png";
+ updateLabels();
+}
+function historyButtons(){
+ $("undo").disabled=historyIndex<=0;
+ $("redo").disabled=historyIndex>=history.length-1;
+}
+function historyComparable(snapshot){const copy={...snapshot};delete copy.maskStrokes;delete copy.aiMaskData;return JSON.stringify(copy);}
+function pushHistory(){
+ if(!previewImage)return;
+ const snapshot=state();
+ if(historyIndex>=0&&historyComparable(history[historyIndex])===historyComparable(snapshot)&&history[historyIndex].maskStrokes===snapshot.maskStrokes)return;
+ history=history.slice(0,historyIndex+1);
+ history.push(snapshot);
+ if(history.length>40)history.shift();
+ historyIndex=history.length-1;
+ historyButtons();
+}
+function syncSelections(){
+ document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x.dataset.preset===look));
+ document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",cropRatio===null?x.dataset.ratio==="free":+x.dataset.ratio===cropRatio));
+}
+function applyState(s){
+ sliders.forEach(k=>$(k).value=s.values[k]);
+ rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;
+ cropPanX=clamp01(s.cropPanX??0.5);cropPanY=clamp01(s.cropPanY??0.5);
+ outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;
+ maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskInverted=!!s.maskInverted;aiMaskData=s.aiMaskData||null;$("aiThreshold").value=s.aiThreshold??45;$("maskFeather").value=s.maskFeather??0;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();resizeMaskCanvasForCurrentGeometry();redrawMaskStrokes();
+ $("fade").value=lookIntensity;syncSelections();syncCropInteraction();
+ syncDimensionFields();updateLabels();scheduleRender();
+}
+function announce(message){
+ const status=$("status");
+ if(status)status.textContent=String(message||"");
+}
+function toast(message){
+ const t=$("toast");t.textContent=message;t.classList.add("show");
+ clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2400);
+}
+function drawSegmentationInput(target){
+ if(!previewImage||!maskCanvas)throw new Error("Open a photo before running local AI detection.");
+ const w=maskCanvas.width,h=maskCanvas.height;
+ target.width=w;target.height=h;
+ const inputContext=target.getContext("2d",{alpha:false});
+ if(!inputContext)throw new Error("Canvas input untuk AI tidak tersedia.");
+ inputContext.fillStyle="#fff";inputContext.fillRect(0,0,w,h);
+ const rect=cropRect(previewImage.width,previewImage.height),rotated=Math.abs(rotation%180)===90;
+ inputContext.save();inputContext.translate(w/2,h/2);inputContext.rotate(rotation*Math.PI/180);
+ inputContext.scale(flipH?-1:1,flipV?-1:1);inputContext.filter="none";
+ inputContext.drawImage(previewImage,rect.x,rect.y,rect.w,rect.h,-(rotated?h:w)/2,-(rotated?w:h)/2,rotated?h:w,rotated?w:h);
+ inputContext.restore();
+ return target;
+}
+function handleLocalAIWorkerMessage(event){
+ const message=event.data||{};
+ if(message.id!==aiSegmentationRequestId)return;
+ if(message.type==="STATUS"){
+  if(message.photoSequence!==undefined&&message.photoSequence!==loadSequence)return;
+  $("aiStatus").textContent=String(message.message||"Processing locally…");
+  return;
+ }
+ if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
+ aiSegmentationBusy=false;
+ if(message.type==="ERROR"){
+  if(message.photoSequence===undefined||message.photoSequence===loadSequence){
+   $("aiStatus").textContent="AI detection failed: "+String(message.message||"Unknown error")+" Manual brush remains available.";
+  }
+  updateMaskActions();return;
+ }
+ if(message.type!=="RESULT")return;
+ if(message.photoSequence!==loadSequence){
+  $("aiStatus").textContent="AI result discarded because the source photo changed.";
+  updateMaskActions();return;
+ }
+ try{
+  const width=Number(message.width),height=Number(message.height),confidence=new Uint8Array(message.confidence);
+  if(!width||!height||width*height!==confidence.length||confidence.length>256*256)throw new Error("AI mask dimensions are invalid.");
+  aiMaskData={width,height,data:confidence};
+  maskStrokes=[];maskApplied=false;maskInverted=false;maskRevision++;
+  $("maskFeather").value=0;redrawMaskStrokes();updateMaskActions();
+  scheduleRender(false,false);pushHistory();
+  $("aiStatus").textContent="Person mask generated locally ("+width+" × "+height+"). Refine with brush and threshold, then remove the background.";
+  announce("Local AI person mask ready. Refine the selection before export.");
+ }catch(error){
+  $("aiStatus").textContent="AI mask could not be applied: "+error.message+" Manual brush remains available.";
+  updateMaskActions();
+ }
+}
+function createLocalAIWorker(){
+ if(segmenterWorker)return segmenterWorker;
+ const worker=new Worker("/ai/segmenter.worker.js",{type:"module",name:"ZERO local person segmentation"});
+ worker.addEventListener("message",handleLocalAIWorkerMessage);
+ worker.addEventListener("error",event=>{
+  if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
+  aiSegmentationBusy=false;segmenterWorker=null;
+  $("aiStatus").textContent="Local AI worker could not start: "+(event.message||"worker error")+". Manual brush remains available.";
+  updateMaskActions();
+ });
+ segmenterWorker=worker;return worker;
+}
+async function runLocalPersonSegmentation(){
+ if(!previewImage||!$("aiConsent").checked||aiSegmentationBusy)return;
+ if(hasMaskSelection()&&!window.confirm("Replace the current background selection with a new AI person mask? You can Undo afterward."))return;
+ aiSegmentationBusy=true;updateMaskActions();
+ $("aiStatus").textContent="Preparing a small local preview for AI…";
+ const requestId=++aiSegmentationRequestId,photoSequence=loadSequence;
+ let bitmap=null,inputCanvas=null;
+ try{
+  inputCanvas=drawSegmentationInput(document.createElement("canvas"));
+  bitmap=await createImageBitmap(inputCanvas);
+  inputCanvas.width=0;inputCanvas.height=0;inputCanvas=null;
+  const worker=createLocalAIWorker();
+  worker.postMessage({type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap},[bitmap]);
+  bitmap=null;
+  aiSegmentationTimeout=setTimeout(()=>{
+   if(requestId!==aiSegmentationRequestId)return;
+   aiSegmentationTimeout=null;aiSegmentationBusy=false;aiSegmentationRequestId++;
+   if(segmenterWorker){try{segmenterWorker.terminate();}catch{}segmenterWorker=null;}
+   $("aiStatus").textContent="Local AI timed out after 60 seconds. The worker was stopped; try again or use the manual brush.";
+   updateMaskActions();
+  },AI_SEGMENTATION_TIMEOUT_MS);
+ }catch(error){
+  if(bitmap&&typeof bitmap.close==="function")bitmap.close();
+  if(inputCanvas){inputCanvas.width=0;inputCanvas.height=0;}
+  if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
+  aiSegmentationBusy=false;
+  $("aiStatus").textContent="Local AI could not start: "+(error.message||"Unknown error")+". Manual brush remains available.";
+  updateMaskActions();
+ }
+}
+async function loadFile(f,{skipConfirm=false}={}){
+ if(!f)return;
+ if(previewImage&&hasUnsavedChanges()&&!skipConfirm){
+  const accepted=window.confirm("Ada perubahan yang belum diekspor. Ganti foto dan buang perubahan tersebut?");
+  if(!accepted){toast("Foto saat ini tetap dipertahankan.");return;}
+ }
+ if(!/^image\/(jpeg|png|webp|avif)$/.test(f.type)){toast("Pilih file JPEG, PNG, WebP, atau AVIF.");return;}
+ if(f.size>MAX_BYTES){toast("File melebihi batas 30 MB.");return;}
+ const sequence=++loadSequence;
+ let full=null,preview=null,width=0,height=0;
+ try{
+  if(typeof createImageBitmap==="function"){
+   try{full=await createImageBitmap(f);}catch{full=null;}
+  }
+  if(full){
+   width=full.width;height=full.height;
+   const pixels=width*height;
+   if(!width||!height||pixels>MAX_INPUT_PIXELS)throw new Error("Resolusi tidak valid atau melebihi 24 MP.");
+   const scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(width,height),Math.sqrt(PREVIEW_MAX_PIXELS/pixels));
+   const previewWidth=Math.max(1,Math.round(width*scale)),previewHeight=Math.max(1,Math.round(height*scale));
+   try{
+    preview=await createImageBitmap(full,{resizeWidth:previewWidth,resizeHeight:previewHeight,resizeQuality:"high"});
+   }catch{
+    const thumb=document.createElement("canvas");thumb.width=previewWidth;thumb.height=previewHeight;
+    const thumbCtx=thumb.getContext("2d");if(!thumbCtx)throw new Error("Canvas preview tidak tersedia.");
+    thumbCtx.drawImage(full,0,0,previewWidth,previewHeight);preview=thumb;
+   }
+   full.close();full=null;
+  }else{
+   const url=URL.createObjectURL(f),img=new Image();
+   try{
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("Browser tidak dapat membaca file ini."));img.src=url;});
+    width=img.naturalWidth;height=img.naturalHeight;
+    if(!width||!height||width*height>MAX_INPUT_PIXELS)throw new Error("Resolusi tidak valid atau melebihi 24 MP.");
+    const scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(width,height),Math.sqrt(PREVIEW_MAX_PIXELS/(width*height)));
+    const w=Math.max(1,Math.round(width*scale)),h=Math.max(1,Math.round(height*scale));
+    const thumb=document.createElement("canvas");thumb.width=w;thumb.height=h;
+    const thumbCtx=thumb.getContext("2d");if(!thumbCtx)throw new Error("Canvas preview tidak tersedia.");
+    thumbCtx.drawImage(img,0,0,w,h);preview=thumb;
+   }finally{img.src="";URL.revokeObjectURL(url);}
+  }
+  if(sequence!==loadSequence){if(preview&&typeof preview.close==="function")preview.close();return;}
+  if(previewImage&&typeof previewImage.close==="function")previewImage.close();
+  previewImage=preview;sourceWidth=width;sourceHeight=height;file=f;
+  rotation=0;flipH=false;flipV=false;cropRatio=null;cropPanX=0.5;cropPanY=0.5;outW=0;outH=0;look="original";lookIntensity=100;
+  sliders.forEach(k=>$(k).value=defaults[k]);$("fade").value=100;initializeMaskCanvas();lastGeometrySignature=geometrySignature();syncSelections();syncCropInteraction();
+  $("empty").hidden=true;canvas.hidden=false;$("compare").disabled=false;
+  $("fileName").textContent=f.name;
+  $("fileMeta").textContent=(f.size/1024/1024).toFixed(2)+" MB · "+width+" × "+height+" px · preview optimized";
+  syncDimensionFields();history=[];historyIndex=-1;render();pushHistory();savedStateSignature=currentStateSignature();toast("Foto dibuka. Preview ringan dibuat di perangkat ini.");
+ }catch(error){
+  if(full&&typeof full.close==="function")full.close();
+  if(preview&&typeof preview.close==="function")preview.close();
+  if(sequence===loadSequence)toast(error.message||"Foto tidak dapat dibuka.");
+ }
+}
+function update(push=true){if(!previewImage)return;const nextGeometry=geometrySignature();if(lastGeometrySignature!==null&&nextGeometry!==lastGeometrySignature)clearMaskForGeometryChange();lastGeometrySignature=nextGeometry;scheduleRender();if(push)pushHistory();}
+function resetAll(){
+ if(!previewImage)return;
+ sliders.forEach(k=>$(k).value=defaults[k]);
+ maskStrokes=[];aiMaskData=null;maskApplied=false;maskInverted=false;$("aiThreshold").value=45;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();
+ rotation=0;flipH=false;flipV=false;cropRatio=null;cropPanX=0.5;cropPanY=0.5;outW=0;outH=0;look="original";lookIntensity=100;
+ $("fade").value=100;syncSelections();syncCropInteraction();
+ syncDimensionFields();update();toast("Semua edit dikembalikan.");
+}
+async function decodeOriginalForExport(){
+ if(typeof createImageBitmap==="function"){
+  try{
+   const bitmap=await createImageBitmap(file);
+   return {source:bitmap,cleanup:()=>bitmap.close()};
+  }catch{}
+ }
+ const url=URL.createObjectURL(file),img=new Image();
+ try{
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("File asli gagal dibuka untuk ekspor."));img.src=url;});
+  return {source:img,cleanup:()=>{img.src="";URL.revokeObjectURL(url);}};
+ }catch(error){URL.revokeObjectURL(url);throw error;}
+}
+async function exportImage(){
+ if(!previewImage||exporting){if(!previewImage)toast("Buka foto terlebih dahulu.");return;}
+ const type=$("format").value,quality=+$("quality").value/100,size=outputSize();
+ if(size.w*size.h>MAX_OUTPUT_PIXELS){toast("Ukuran ekspor melebihi batas aman.");return;}
+ exporting=true;$("download").disabled=$("topExport").disabled=true;
+ announce("Membuka sumber asli untuk ekspor…");
+ let exportCanvas=null,decoded=null;
+ try{
+  decoded=await decodeOriginalForExport();
+  exportCanvas=document.createElement("canvas");
+  drawTo(exportCanvas,false,type==="image/jpeg"?"#ffffff":null,decoded.source,sourceWidth,sourceHeight);
+  decoded.cleanup();decoded=null;
+  const blob=await new Promise(resolve=>exportCanvas.toBlob(resolve,type,type==="image/png"?undefined:quality));
+  if(!blob)throw new Error("Browser tidak dapat membuat file ekspor.");
+  const actualType=blob.type||type;
+  const ext=actualType==="image/jpeg"?"jpg":actualType==="image/webp"?"webp":"png";
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="zero-studio-"+Date.now()+"."+ext;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  savedStateSignature=currentStateSignature();
+  toast("Ekspor selesai · "+(blob.size/1024/1024).toFixed(2)+" MB");
+  announce("Ekspor "+ext.toUpperCase()+" berhasil.");
+ }catch(e){toast("Ekspor gagal: "+e.message);announce("Ekspor gagal: "+e.message);}
+ finally{
+  if(decoded)decoded.cleanup();
+  if(exportCanvas){exportCanvas.width=0;exportCanvas.height=0;}
+  exporting=false;$("download").disabled=$("topExport").disabled=false;
+ }
+}
+const input=document.createElement("input");
+input.type="file";input.id="photo";input.accept="image/jpeg,image/png,image/webp,image/avif";input.hidden=true;
+document.body.appendChild(input);
+input.addEventListener("change",()=>{loadFile(input.files[0]);input.value="";});
+$("browse").onclick=$("startUpload").onclick=()=>input.click();
+$("dropzone").addEventListener("click",e=>{if(!e.target.closest("button"))input.click();});
+function setupDrop(target){
+ ["dragenter","dragover"].forEach(ev=>target.addEventListener(ev,e=>{e.preventDefault();target.style.borderColor="#a9f36c";}));
+ ["dragleave","drop"].forEach(ev=>target.addEventListener(ev,e=>{e.preventDefault();target.style.borderColor="";}));
+ target.addEventListener("drop",e=>{const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)loadFile(f);});
+}
+setupDrop($("stage"));setupDrop($("dropzone"));
+canvas.addEventListener("pointerdown",e=>{
+ if(!canvas.classList.contains("crop-ready")||!previewImage||cropRatio===null)return;
+ const rect=cropRect(sourceWidth,sourceHeight),bounds=canvas.getBoundingClientRect();
+ if(rect.maxX<1&&rect.maxY<1)return;
+ cropDrag={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startPanX:cropPanX,startPanY:cropPanY,rect,bounds,moved:false};
+ try{canvas.setPointerCapture(e.pointerId);}catch{}
+ canvas.classList.add("crop-panning");e.preventDefault();
+});
+canvas.addEventListener("pointermove",e=>{
+ if(!cropDrag||e.pointerId!==cropDrag.pointerId)return;
+ const delta=cropDeltaFromPointer(e.clientX-cropDrag.startX,e.clientY-cropDrag.startY,cropDrag.rect,cropDrag.bounds);
+ const nextX=cropDrag.rect.maxX>0?clamp01(cropDrag.startPanX-delta.x/cropDrag.rect.maxX):cropDrag.startPanX;
+ const nextY=cropDrag.rect.maxY>0?clamp01(cropDrag.startPanY-delta.y/cropDrag.rect.maxY):cropDrag.startPanY;
+ if(Math.abs(nextX-cropPanX)>0.0001||Math.abs(nextY-cropPanY)>0.0001){
+  cropPanX=nextX;cropPanY=nextY;cropDrag.moved=true;scheduleRender(false,true);
+ }
+});
+function finishCropDrag(e){
+ if(!cropDrag||e.pointerId!==cropDrag.pointerId)return;
+ const moved=cropDrag.moved;
+ try{if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);}catch{}
+ cropDrag=null;canvas.classList.remove("crop-panning");
+ if(moved){update();announce("Posisi crop diperbarui.");}
+}
+canvas.addEventListener("pointerup",finishCropDrag);
+canvas.addEventListener("pointercancel",finishCropDrag);
+function maskToolActive(){return $("panel-background").classList.contains("active");}
+function maskPointFromEvent(event){
+ const bounds=canvas.getBoundingClientRect();
+ return {x:Math.max(0,Math.min(maskCanvas.width,(event.clientX-bounds.left)*maskCanvas.width/Math.max(1,bounds.width))),
+  y:Math.max(0,Math.min(maskCanvas.height,(event.clientY-bounds.top)*maskCanvas.height/Math.max(1,bounds.height)))};
+}
+canvas.addEventListener("pointerdown",event=>{
+ if(!maskToolActive()||!previewImage||!maskCanvas||event.button!==0)return;
+ if(maskStrokes.length>=MAX_MASK_STROKES){toast("Batas 120 sapuan tercapai. Undo beberapa sapuan terlebih dahulu.");return;}
+ const point=maskPointFromEvent(event),bounds=canvas.getBoundingClientRect();
+ const radius=Math.max(1,(+$("brushSize").value/2)*maskCanvas.width/Math.max(1,bounds.width));
+ const requestedErase=$("maskMode").value==="erase";
+ const stroke={mode:(maskInverted?!requestedErase:requestedErase)?"erase":"add",radius,points:[point]};
+ const context=maskCanvas.getContext("2d");if(!context)return;
+ maskPointer={pointerId:event.pointerId,stroke,lastPoint:point};maskRevision++;
+ paintMaskSegment(context,stroke,point,point);canvas.classList.add("mask-painting");
+ try{canvas.setPointerCapture(event.pointerId);}catch{}
+ scheduleRender(false,true);event.preventDefault();
+});
+canvas.addEventListener("pointermove",event=>{
+ if(!maskPointer||event.pointerId!==maskPointer.pointerId)return;
+ const point=maskPointFromEvent(event),last=maskPointer.lastPoint,distance=Math.hypot(point.x-last.x,point.y-last.y);
+ if(distance<Math.max(1,maskPointer.stroke.radius*.16))return;
+ const context=maskCanvas.getContext("2d");if(!context)return;
+ if(maskPointer.stroke.points.length>=MAX_MASK_POINTS_PER_STROKE){announce("Batas detail sapuan tercapai; lepaskan kuas untuk menyimpan.");return;}
+ paintMaskSegment(context,maskPointer.stroke,last,point);
+ maskPointer.stroke.points.push(point);maskPointer.lastPoint=point;scheduleRender(false,true);
+});
+function finishMaskPaint(event){
+ if(!maskPointer||event.pointerId!==maskPointer.pointerId)return;
+ const stroke=maskPointer.stroke;
+ try{if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);}catch{}
+ maskPointer=null;canvas.classList.remove("mask-painting");
+ if(stroke.points.length){maskStrokes=maskStrokes.concat(stroke);pushHistory();updateMaskActions();scheduleRender(false,false);announce("Sapuan mask disimpan. Gunakan Undo untuk membatalkannya.");}
+}
+canvas.addEventListener("pointerup",finishMaskPaint);
+canvas.addEventListener("pointercancel",finishMaskPaint);
+$("brushSize").addEventListener("input",()=>{$("brushSizeValue").textContent=$("brushSize").value+" px";});
+$("maskOverlay").addEventListener("change",()=>scheduleRender(false,false));
+$("aiSegment").addEventListener("click",runLocalPersonSegmentation);
+$("aiConsent").addEventListener("change",()=>{
+ if(!$("aiConsent").checked){
+  if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}
+  if(aiSegmentationBusy){aiSegmentationRequestId++;aiSegmentationBusy=false;}
+  if(segmenterWorker){try{segmenterWorker.terminate();}catch{}segmenterWorker=null;}
+  $("aiStatus").textContent="AI permission withdrawn. Any active worker was stopped. Manual brush remains available.";
+ }else $("aiStatus").textContent="Consent recorded for this page session. Your image is processed locally; the model will load only when you click Detect person locally.";
+ updateMaskActions();
+});
+$("aiThreshold").addEventListener("input",()=>{if(!aiMaskData)return;$("aiThresholdValue").textContent=$("aiThreshold").value+"%";redrawMaskStrokes();scheduleRender(false,true);});
+$("aiThreshold").addEventListener("change",()=>{if(!aiMaskData)return;maskRevision++;pushHistory();scheduleRender(false,false);});
+$("maskFeather").addEventListener("input",()=>{$("maskFeatherValue").textContent=$("maskFeather").value+" px";scheduleRender(false,true);});
+$("maskFeather").addEventListener("change",()=>{pushHistory();scheduleRender(false,false);});
+$("invertMask").addEventListener("click",()=>{if(!hasMaskSelection())return;maskInverted=!maskInverted;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast(maskInverted?"Seleksi dibalik.":"Seleksi kembali ke sapuan kuas.");});
+$("applyMask").addEventListener("click",()=>{
+ if(!hasMaskSelection())return;
+ maskApplied=true;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast("Latar di luar seleksi menjadi transparan.");
+});
+$("restoreMask").addEventListener("click",()=>{
+ if(!maskApplied)return;
+ maskApplied=false;maskRevision++;updateMaskActions();scheduleRender(false,false);pushHistory();toast("Tampilan latar asli dipulihkan.");
+});
+$("clearMask").addEventListener("click",()=>{
+ if(!hasMaskSelection())return;
+ maskStrokes=[];aiMaskData=null;maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();updateMaskActions();scheduleRender(false,false);pushHistory();toast("Seleksi mask dihapus.");
+});
+document.querySelectorAll(".tooltab").forEach(b=>b.addEventListener("click",()=>{
+ document.querySelectorAll(".tooltab").forEach(x=>x.classList.toggle("active",x===b));
+ document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id==="panel-"+b.dataset.panel));
+ syncCropInteraction();
+ if(b.dataset.panel==="background")scheduleRender(false,false);
+}));
+sliders.forEach(k=>{
+ $(k).addEventListener("input",()=>{scheduleRender(false,true);updateLabels();});
+ $(k).addEventListener("change",()=>{scheduleRender(false,false);pushHistory();});
+});
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
+ if(!previewImage)return;
+ look=b.dataset.preset;
+ document.querySelectorAll("[data-preset]").forEach(x=>x.classList.toggle("selected",x===b));
+ update();toast(b.textContent.trim()+" diterapkan.");
+}));
+$("fade").addEventListener("input",()=>{lookIntensity=+$("fade").value;scheduleRender(false,true);updateLabels();});
+$("fade").addEventListener("change",()=>{scheduleRender(false,false);pushHistory();});
+$("rotateLeft").onclick=()=>{if(previewImage){rotation=(rotation+270)%360;if(outW&&outH)[outW,outH]=[outH,outW];syncDimensionFields();update();}};
+$("rotateRight").onclick=()=>{if(previewImage){rotation=(rotation+90)%360;if(outW&&outH)[outW,outH]=[outH,outW];syncDimensionFields();update();}};
+$("flipH").onclick=()=>{if(previewImage){flipH=!flipH;update();}};
+$("flipV").onclick=()=>{if(previewImage){flipV=!flipV;update();}};
+document.querySelectorAll(".crop").forEach(b=>b.onclick=()=>{
+ if(!previewImage)return;
+ cropRatio=b.dataset.ratio==="free"?null:+b.dataset.ratio;cropPanX=0.5;cropPanY=0.5;outW=0;outH=0;
+ document.querySelectorAll(".crop").forEach(x=>x.classList.toggle("selected",x===b));
+ syncCropInteraction();syncDimensionFields();update();
+ if(cropRatio!==null)announce("Crop aktif · geser foto langsung di canvas untuk mengatur framing.");
+});
+$("outWidth").addEventListener("input",()=>{lastDimensionEdited="width";});
+$("outHeight").addEventListener("input",()=>{lastDimensionEdited="height";});
+$("applySize").onclick=()=>{
+ if(!previewImage)return;
+ let w=+$("outWidth").value,h=+$("outHeight").value;
+ const base=baseSize();
+ if($("lockRatio").checked){
+  if(lastDimensionEdited==="width")h=Math.max(1,Math.round(w*base.h/base.w));
+  else w=Math.max(1,Math.round(h*base.w/base.h));
+ }
+ if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1){toast("Masukkan dimensi yang valid.");return;}
+ const size=boundedSize(w,h);outW=size.w;outH=size.h;
+ syncDimensionFields();update();toast("Dimensi output diterapkan.");
+};
+$("auto").onclick=()=>{
+ if(!previewImage)return;
+ $("brightness").value=104;$("contrast").value=108;$("saturation").value=108;$("warmth").value=2;
+ update();toast("Auto tone diterapkan.");
+};
+$("resetAdjust").onclick=()=>{sliders.forEach(k=>$(k).value=defaults[k]);update();};
+$("resetAll").onclick=resetAll;
+$("download").onclick=$("topExport").onclick=exportImage;
+$("undo").onclick=()=>{
+ if(historyIndex>0){historyIndex--;applyState(history[historyIndex]);historyButtons();toast("Undo");}
+};
+$("redo").onclick=()=>{
+ if(historyIndex<history.length-1){historyIndex++;applyState(history[historyIndex]);historyButtons();toast("Redo");}
+};
+$("compare").addEventListener("pointerdown",()=>{if(previewImage)render(true);});
+["pointerup","pointerleave","pointercancel","blur"].forEach(ev=>$("compare").addEventListener(ev,()=>scheduleRender(false)));
+$("fit").onclick=()=>{if(previewImage){canvas.style.maxHeight="calc(100vh - 230px)";toast("Canvas disesuaikan ke area kerja.");}};
+$("quality").oninput=updateLabels;
+$("format").onchange=updateFormatControl;
+document.addEventListener("keydown",e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();$("undo").click();}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();$("redo").click();}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();exportImage();}
+});
+window.addEventListener("beforeunload",e=>{
+ if(hasUnsavedChanges()){e.preventDefault();e.returnValue="";}
+});
+window.addEventListener("pagehide",e=>{
+ loadSequence++;
+ if(framePending){cancelAnimationFrame(framePending);framePending=0;}
+ if(!e.persisted){if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}if(segmenterWorker){try{segmenterWorker.terminate();}catch{}segmenterWorker=null;}if(previewImage&&typeof previewImage.close==="function")previewImage.close();}
+});
+async function runEditorSelfTest(){
+ const checks=[];
+ const verify=(name,ok)=>{checks.push({name,ok:!!ok});if(!ok)throw new Error(name);};
+ const afterFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ const hasPixels=()=>{
+  if(canvas.hidden||!canvas.width||!canvas.height)return false;
+  try{
+   const w=Math.min(24,canvas.width),h=Math.min(24,canvas.height);
+   const pixels=ctx.getImageData(0,0,w,h).data;
+   for(let i=3;i<pixels.length;i+=4)if(pixels[i]>0)return true;
+  }catch{}
+  return false;
+ };
+ try{
+  announce("Self-test: membuat gambar uji lokal…");
+  const source=document.createElement("canvas");source.width=120;source.height=80;
+  const sourceCtx=source.getContext("2d");
+  if(!sourceCtx)throw new Error("Canvas 2D tidak tersedia.");
+  sourceCtx.fillStyle="#336699";sourceCtx.fillRect(0,0,120,80);
+  sourceCtx.fillStyle="#ffcc00";sourceCtx.fillRect(12,12,36,28);
+  const imageBlob=await new Promise(resolve=>source.toBlob(resolve,"image/png"));
+  verify("Synthetic PNG created",!!imageBlob&&imageBlob.size>0);
+  const testFile=new File([imageBlob],"zero-local-self-test.png",{type:"image/png"});
+  await loadFile(testFile,{skipConfirm:true});await afterFrame();
+  verify("Local image loaded",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80);
+  verify("Preview visible and contains pixels",hasPixels());
+  verify("New photo session starts clean",!hasUnsavedChanges());
+  const nativeBitmapDecoder=window.createImageBitmap;
+  try{
+   if(typeof nativeBitmapDecoder==="function")window.createImageBitmap=undefined;
+   await loadFile(testFile,{skipConfirm:true});await afterFrame();
+   verify("HTMLImageElement fallback loads the local photo",!!previewImage&&file===testFile&&sourceWidth===120&&sourceHeight===80&&hasPixels());
+   const fallbackDecoded=await decodeOriginalForExport();
+   verify("HTMLImageElement fallback decodes the export source",fallbackDecoded.source.naturalWidth===120&&fallbackDecoded.source.naturalHeight===80);
+   fallbackDecoded.cleanup();
+  }finally{window.createImageBitmap=nativeBitmapDecoder;}
+  $("brightness").value=135;
+  $("brightness").dispatchEvent(new Event("input",{bubbles:true}));
+  $("brightness").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  verify("Brightness render keeps preview visible",hasPixels());
+  verify("Editing marks the photo session as unsaved",hasUnsavedChanges());
+  const originalConfirm=window.confirm;let replacementPrompted=false;
+  window.confirm=()=>{replacementPrompted=true;return false;};
+  await loadFile(new File([imageBlob],"rejected-replacement.png",{type:"image/png"}));
+  window.confirm=originalConfirm;
+  verify("Replacing an edited photo requires confirmation",replacementPrompted&&file===testFile&&hasUnsavedChanges());
+  const unloadEvent=new Event("beforeunload",{cancelable:true});
+  window.dispatchEvent(unloadEvent);
+  verify("Unsaved edits trigger a leave-page warning",unloadEvent.defaultPrevented);
+  $("contrast").value=125;
+  $("contrast").dispatchEvent(new Event("input",{bubbles:true}));
+  $("contrast").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  verify("Contrast render keeps preview visible",hasPixels());
+  const cornerBefore=ctx.getImageData(1,1,1,1).data[0];
+  $("vignette").value=82;
+  $("vignette").dispatchEvent(new Event("input",{bubbles:true}));
+  $("vignette").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const cornerAfter=ctx.getImageData(1,1,1,1).data[0];
+  verify("Vignette darkens the image edges",cornerAfter<cornerBefore&&hasPixels());
+  const sharpenBefore=new Uint8ClampedArray(ctx.getImageData(0,0,canvas.width,canvas.height).data);
+  $("sharpen").value=85;
+  $("sharpen").dispatchEvent(new Event("input",{bubbles:true}));
+  $("sharpen").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const sharpenAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let sharpenChangedPixels=false;
+  for(let i=0;i<sharpenAfter.length;i++){if(sharpenAfter[i]!==sharpenBefore[i]){sharpenChangedPixels=true;break;}}
+  verify("Sharpen changes edge detail in preview",sharpenChangedPixels&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores the previous sharpen amount",+$("sharpen").value===0&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo restores the sharpen amount",+$("sharpen").value===85&&hasPixels());
+  const gradeBaseline=new Uint8ClampedArray(ctx.getImageData(0,0,canvas.width,canvas.height).data);
+  $("highlights").value=72;
+  $("highlights").dispatchEvent(new Event("input",{bubbles:true}));
+  $("highlights").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const highlightsAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let highlightsChanged=false;
+  for(let i=0;i<highlightsAfter.length;i++){if(highlightsAfter[i]!==gradeBaseline[i]){highlightsChanged=true;break;}}
+  verify("Highlights grading changes brighter tones",highlightsChanged&&hasPixels());
+  $("shadows").value=64;
+  $("shadows").dispatchEvent(new Event("input",{bubbles:true}));
+  $("shadows").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const shadowsAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let shadowsChanged=false;
+  for(let i=0;i<shadowsAfter.length;i++){if(shadowsAfter[i]!==highlightsAfter[i]){shadowsChanged=true;break;}}
+  verify("Shadows grading changes darker tones",shadowsChanged&&hasPixels());
+  $("tint").value=-42;
+  $("tint").dispatchEvent(new Event("input",{bubbles:true}));
+  $("tint").dispatchEvent(new Event("change",{bubbles:true}));
+  await afterFrame();
+  const tintAfter=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let tintChanged=false;
+  for(let i=0;i<tintAfter.length;i++){if(tintAfter[i]!==shadowsAfter[i]){tintChanged=true;break;}}
+  verify("Tint grading shifts image color",tintChanged&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores previous tint setting",+$("tint").value===0&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies tint setting",+$("tint").value===-42&&hasPixels());
+  const backgroundTab=document.querySelector('[data-panel="background"]');
+  backgroundTab.click();await afterFrame();
+  const previousAIData=aiMaskData,previousAIThreshold=$("aiThreshold").value;
+  const syntheticConfidence=new Uint8Array(24);
+  syntheticConfidence[8]=255;syntheticConfidence[9]=255;syntheticConfidence[14]=255;syntheticConfidence[15]=255;
+  aiMaskData={width:6,height:4,data:syntheticConfidence};$("aiThreshold").value=45;maskRevision++;redrawMaskStrokes();await afterFrame();
+  const aiMaskPixels=maskCanvas.getContext("2d").getImageData(0,0,maskCanvas.width,maskCanvas.height).data;
+  const aiCenterAlpha=maskCanvas.getContext("2d").getImageData(Math.floor(maskCanvas.width/2),Math.floor(maskCanvas.height/2),1,1).data[3];
+  verify("AI confidence mask is composited into the editable selection",hasMaskSelection()&&aiCenterAlpha>0);
+  verify("AI confidence threshold preserves soft selection edges",confidenceToAlpha(0,45)===0&&confidenceToAlpha(255,45)===255&&confidenceToAlpha(128,45)>0);
+  aiMaskData=previousAIData;$("aiThreshold").value=previousAIThreshold;maskRevision++;redrawMaskStrokes();
+  $("brushSize").value=64;
+  const maskBounds=canvas.getBoundingClientRect(),maskX=maskBounds.left+maskBounds.width/2,maskY=maskBounds.top+maskBounds.height/2;
+  const maskInit={bubbles:true,pointerId:9,pointerType:"mouse",isPrimary:true,button:0,clientX:maskX,clientY:maskY};
+  canvas.dispatchEvent(new PointerEvent("pointerdown",maskInit));
+  canvas.dispatchEvent(new PointerEvent("pointermove",{...maskInit,clientX:maskX+Math.max(3,maskBounds.width*.06)}));
+  canvas.dispatchEvent(new PointerEvent("pointerup",{...maskInit,clientX:maskX+Math.max(3,maskBounds.width*.06)}));
+  await afterFrame();
+  verify("Manual brush creates a local subject mask",maskStrokes.length===1&&maskCanvas.width>0);
+  $("applyMask").click();await afterFrame();
+  const alphaInside=ctx.getImageData(Math.floor(canvas.width/2),Math.floor(canvas.height/2),1,1).data[3];
+  const alphaOutside=ctx.getImageData(1,1,1,1).data[3];
+  verify("Remove background applies transparency outside the selection",maskApplied&&alphaOutside===0&&alphaInside>0);
+  $("undo").click();await afterFrame();
+  verify("Undo restores the un-applied manual mask",!maskApplied&&maskStrokes.length===1);
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies transparent background masking",maskApplied&&ctx.getImageData(1,1,1,1).data[3]===0);
+  $("invertMask").click();await afterFrame();
+  const invertedInside=ctx.getImageData(Math.floor(canvas.width/2),Math.floor(canvas.height/2),1,1).data[3];
+  const invertedOutside=ctx.getImageData(1,1,1,1).data[3];
+  verify("Invert selection reverses transparent and protected areas",maskInverted&&invertedInside===0&&invertedOutside>0);
+  $("invertMask").click();await afterFrame();
+  verify("Invert selection can be toggled back",!maskInverted&&ctx.getImageData(1,1,1,1).data[3]===0);
+  $("maskFeather").value=8;$("maskFeather").dispatchEvent(new Event("input",{bubbles:true}));$("maskFeather").dispatchEvent(new Event("change",{bubbles:true}));await afterFrame();
+  verify("Edge feather is applied to the effective selection",+$("maskFeather").value===8&&hasPixels());
+  const cinema=document.querySelector('[data-preset="cinema"]');
+  verify("Cinematic preset control exists",!!cinema);cinema.click();await afterFrame();
+  verify("Look preset render keeps preview visible",look==="cinema"&&hasPixels());
+  const transformTab=document.querySelector('[data-panel="transform"]');
+  transformTab.click();
+  $("rotateRight").click();await afterFrame();
+  verify("Rotate keeps preview visible",rotation===90&&hasPixels());
+  verify("Changing framing clears an incompatible mask",maskStrokes.length===0&&!maskApplied&&!maskInverted);
+  verify("Mask canvas tracks output geometry",maskCanvas.width===maskDimensions().w&&maskCanvas.height===maskDimensions().h);
+  $("flipH").click();await afterFrame();
+  verify("Flip keeps preview visible",flipH===true&&hasPixels());
+  $("undo").click();await afterFrame();
+  verify("Undo restores transform state",flipH===false&&rotation===90&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies transform state",flipH===true&&rotation===90&&hasPixels());
+  const square=document.querySelector('.crop[data-ratio="1"]');
+  square.click();await afterFrame();
+  verify("Crop ratio applies and remains selected",cropRatio===1&&square.classList.contains("selected")&&hasPixels());
+  verify("Crop frame guide appears while crop mode is active",!$("cropFrame").hidden);
+  $("undo").click();await afterFrame();
+  verify("Undo restores crop selection",cropRatio===null&&document.querySelector('.crop[data-ratio="free"]').classList.contains("selected"));
+  verify("Crop frame guide hides when crop is reset", $("cropFrame").hidden);
+  $("redo").click();await afterFrame();
+  verify("Redo restores crop selection",cropRatio===1&&square.classList.contains("selected"));
+  rotation=0;flipH=false;flipV=false;scheduleRender(false,false);await afterFrame();
+  const cropBeforeDrag=cropPanX,canvasBounds=canvas.getBoundingClientRect();
+  const startX=canvasBounds.left+canvasBounds.width/2,startY=canvasBounds.top+canvasBounds.height/2;
+  const pointerInit={bubbles:true,pointerId:7,pointerType:"mouse",isPrimary:true,clientX:startX,clientY:startY};
+  canvas.dispatchEvent(new PointerEvent("pointerdown",pointerInit));
+  canvas.dispatchEvent(new PointerEvent("pointermove",{...pointerInit,clientX:startX+Math.max(6,canvasBounds.width*0.12)}));
+  canvas.dispatchEvent(new PointerEvent("pointerup",{...pointerInit,clientX:startX+Math.max(6,canvasBounds.width*0.12)}));
+  await afterFrame();
+  verify("Dragging canvas repositions the crop framing",cropPanX<cropBeforeDrag&&hasPixels());
+  const cropAfterDrag=cropPanX;
+  $("undo").click();await afterFrame();
+  verify("Undo restores previous crop framing",Math.abs(cropPanX-cropBeforeDrag)<0.0001&&hasPixels());
+  $("redo").click();await afterFrame();
+  verify("Redo reapplies crop framing",Math.abs(cropPanX-cropAfterDrag)<0.0001&&hasPixels());
+  let decoded=null,exportCanvas=null,blob=null;
+  try{
+   decoded=await decodeOriginalForExport();
+   exportCanvas=document.createElement("canvas");
+   drawTo(exportCanvas,false,null,decoded.source,sourceWidth,sourceHeight);
+   blob=await new Promise(resolve=>exportCanvas.toBlob(resolve,"image/png"));
+  }finally{
+   if(decoded)decoded.cleanup();
+   if(exportCanvas){exportCanvas.width=0;exportCanvas.height=0;}
+  }
+  verify("PNG export produces a non-empty image",!!blob&&blob.type==="image/png"&&blob.size>0);
+  if(blob)savedStateSignature=currentStateSignature();
+  verify("Successful export clears the unsaved-work warning",!hasUnsavedChanges());
+  const passed=checks.filter(x=>x.ok).length;
+  announce("SELF-TEST PASSED · "+passed+"/"+checks.length+" checks · local only");
+  console.info("[ZERO SELF-TEST]",checks);
+ }catch(error){
+  announce("SELF-TEST FAILED · "+(error&&error.message?error.message:String(error)));
+  console.error("[ZERO SELF-TEST]",checks,error);
+ }
+}
 
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-    if (!/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
-      announce("Format tidak didukung. Pilih JPEG, PNG, WebP, atau AVIF.");
-      fileInput.value = "";
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      announce("File melebihi batas 30 MB untuk versi awal.");
-      fileInput.value = "";
-      return;
-    }
-    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-    sourceUrl = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      if (image.naturalWidth * image.naturalHeight > MAX_PIXELS) {
-        URL.revokeObjectURL(sourceUrl);
-        sourceUrl = null;
-        fileInput.value = "";
-        announce("Resolusi foto terlalu besar untuk versi awal (maksimal 40 megapiksel).");
-        return;
-      }
-      sourceImage = image;
-      rotation = 0;
-      sliders.forEach(name => { document.getElementById(name).value = 100; });
-      canvas.hidden = false;
-      empty.hidden = true;
-      controls.hidden = false;
-      render();
-      announce("Foto berhasil dibuka secara lokal. Tidak ada upload ke server.");
-    };
-    image.onerror = () => announce("Foto tidak dapat dibaca oleh browser.");
-    image.src = sourceUrl;
-  });
-
-  sliders.forEach(name => document.getElementById(name).addEventListener("input", render));
-  document.getElementById("rotate").addEventListener("click", () => { rotation = (rotation + 90) % 360; render(); });
-  document.getElementById("reset").addEventListener("click", () => {
-    sliders.forEach(name => { document.getElementById(name).value = 100; });
-    rotation = 0;
-    render();
-    announce("Pengaturan dikembalikan ke nilai awal.");
-  });
-  document.getElementById("download").addEventListener("click", () => {
-    if (!sourceImage) return;
-    canvas.toBlob(blob => {
-      if (!blob) { announce("Ekspor gagal. Coba browser lain atau foto yang lebih kecil."); return; }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "zero-edit-" + Date.now() + ".png";
-      link.click();
-      URL.revokeObjectURL(url);
-      announce("Ekspor PNG dimulai.");
-    }, "image/png");
-  });
-  window.addEventListener("beforeunload", () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); });
-})();
-</script>
+$("quality").disabled=$("format").value==="image/png";
+updateLabels();
+$("brushSizeValue").textContent=$("brushSize").value+" px";
+if(new URLSearchParams(location.search).get("selftest")==="1")void runEditorSelfTest();
+})();</script>
 </body>
 </html>

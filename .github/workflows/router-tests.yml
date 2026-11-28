@@ -2,7 +2,7 @@ name: ZERO Router Tests
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feature/**", "fix/**"]
   pull_request:
     branches: [main]
 
@@ -32,5 +32,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Run Cloudflare Worker smoke tests
+        run: node --test tests/cloudflare-worker.test.mjs
       - name: Run browser photo editor safety tests
         run: node --test tests/photo-editor-page.test.mjs
+      - name: Install pinned Wrangler
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate Worker bundle without deploying
+        run: npm run deploy -- --dry-run
