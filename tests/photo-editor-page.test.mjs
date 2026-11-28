@@ -79,6 +79,25 @@ test("render status announcements are defined and update the visible status line
   assert.equal(status.textContent, "Photo rendered");
 });
 
+test("undo and redo synchronize selected Look and Crop controls with restored state", () => {
+  const block = script.match(/function syncSelections\(\)\{([\s\S]*?)\n\}/);
+  assert.ok(block, "syncSelections() helper must exist");
+  const presets = ["original", "cinema", "vivid"].map((preset) => ({
+    dataset: { preset }, selected: false,
+    classList: { toggle(_name, value) { this.owner.selected = value; }, owner: null }
+  }));
+  const crops = ["free", "1", "0.8"].map((ratio) => ({
+    dataset: { ratio }, selected: false,
+    classList: { toggle(_name, value) { this.owner.selected = value; }, owner: null }
+  }));
+  [...presets, ...crops].forEach((node) => { node.classList.owner = node; });
+  const document = { querySelectorAll(selector) { return selector === "[data-preset]" ? presets : crops; } };
+  const syncSelections = new Function("document", "look", "cropRatio", "return function syncSelections() {" + block[1] + "\\n}")(document, "cinema", 0.8);
+  syncSelections();
+  assert.deepEqual(presets.map((x) => x.selected), [false, true, false]);
+  assert.deepEqual(crops.map((x) => x.selected), [false, false, true]);
+});
+
 test("inline photo editor script parses without syntax errors", () => {
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
