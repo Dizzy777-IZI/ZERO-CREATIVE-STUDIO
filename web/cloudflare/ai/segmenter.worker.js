@@ -91,9 +91,9 @@ self.addEventListener("message", async event => {
   }
 
   if (message.type !== "SEGMENT_IMAGE") return;
-  const { id, bitmap } = message;
+  const { id, bitmap, photoSequence } = message;
   if (!bitmap) {
-    self.postMessage({ type: "ERROR", id, message: "No image frame was provided to the local worker." });
+    self.postMessage({ type: "ERROR", id, photoSequence, message: "No image frame was provided to the local worker." });
     return;
   }
 
@@ -123,11 +123,12 @@ self.addEventListener("message", async event => {
     }
 
     const buffer = confidence.buffer;
-    self.postMessage({ type: "RESULT", id, width, height, confidence: buffer }, [buffer]);
+    self.postMessage({ type: "RESULT", id, photoSequence, width, height, confidence: buffer }, [buffer]);
   } catch (error) {
     self.postMessage({
       type: "ERROR",
       id,
+      photoSequence,
       message: error instanceof Error ? error.message : "Local segmentation failed."
     });
   } finally {
