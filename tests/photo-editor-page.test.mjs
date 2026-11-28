@@ -197,7 +197,7 @@ test("photo editor protects unsaved work and provides a lightweight vignette ret
   assert.match(script, /window\.addEventListener\("beforeunload",e=>\{\s*if\(hasUnsavedChanges\(\)\)/);
   assert.match(script, /window\.addEventListener\("pagehide",e=>\{/);
   assert.ok(script.includes("if(!e.persisted){if(segmenterWorker)"));
-  assert.ok(script.includes('segmenterWorker.postMessage({type:"DISPOSE"})'));
+  assert.ok(script.includes("segmenterWorker.terminate()"));
   assert.ok(script.includes("previewImage.close()"));
   assert.match(script, /function drawVignette\(target,w,h,original=false\)/);
   assert.ok(html.includes('id="vignette"'));
@@ -294,6 +294,10 @@ test("local person segmentation is lazy, pinned, hash-verified and isolated from
 
   assert.ok(script.includes('function runLocalPersonSegmentation()'));
   assert.ok(script.includes('if(!previewImage||!$("aiConsent").checked||aiSegmentationBusy)return'));
+  assert.ok(script.includes("const AI_SEGMENTATION_TIMEOUT_MS=60000"));
+  assert.ok(script.includes("AI timed out after 60 seconds"));
+  assert.ok(script.includes("AI permission withdrawn. Any active worker was stopped."));
+  assert.ok(script.includes("if(aiSegmentationTimeout){clearTimeout(aiSegmentationTimeout);aiSegmentationTimeout=null;}"));
   assert.ok(html.includes("I agree to MediaPipe usage and performance metrics being sent to Google."));
   assert.ok(script.includes('new Worker("/ai/segmenter.worker.js",{type:"module"'));
   assert.ok(script.includes('worker.postMessage({type:"SEGMENT_IMAGE",id:requestId,photoSequence,bitmap},[bitmap])'));
