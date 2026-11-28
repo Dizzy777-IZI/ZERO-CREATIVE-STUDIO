@@ -312,6 +312,11 @@ test("local person segmentation is lazy, pinned, hash-verified and isolated from
   assert.ok(localAIWorker.includes("image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite"));
   assert.ok(localAIWorker.includes('credentials: "omit"'));
   assert.ok(localAIWorker.includes('method: "GET"'));
+  assert.ok(localAIWorker.includes("response.body.getReader"));
+  assert.ok(localAIWorker.includes("receivedBytes > MAX_MODEL_BYTES || receivedBytes > MODEL_BYTES"));
+  assert.ok(localAIWorker.includes("receivedBytes !== MODEL_BYTES"));
+  assert.ok(localAIWorker.includes("await reader.cancel()"));
+  assert.ok(localAIWorker.includes("const modelBytes = new Uint8Array(receivedBytes)"));
   assert.ok(localAIWorker.includes('mode: "cors"'));
   assert.ok(localAIWorker.includes('referrerPolicy: "no-referrer"'));
   assert.ok(localAIWorker.includes('crypto.subtle.digest("SHA-256", modelBuffer)'));
