@@ -287,10 +287,17 @@ function maskDimensions(){
  const size=outputSize(),scale=Math.min(1,PREVIEW_MAX_DIMENSION/Math.max(size.w,size.h),Math.sqrt(PREVIEW_MAX_PIXELS/(size.w*size.h)));
  return {w:Math.max(1,Math.round(size.w*scale)),h:Math.max(1,Math.round(size.h*scale))};
 }
-function initializeMaskCanvas(){
+function resizeMaskCanvasForCurrentGeometry(){
  const size=maskDimensions();
- maskCanvas=document.createElement("canvas");maskCanvas.width=size.w;maskCanvas.height=size.h;
- maskOverlayCanvas=document.createElement("canvas");maskEffectiveCanvas=document.createElement("canvas");maskStrokes=[];maskApplied=false;maskInverted=false;maskRevision=0;maskPointer=null;$("maskFeather").value=0;$("maskFeatherValue").textContent="0 px";
+ if(!maskCanvas)maskCanvas=document.createElement("canvas");
+ if(maskCanvas.width!==size.w||maskCanvas.height!==size.h){maskCanvas.width=size.w;maskCanvas.height=size.h;}
+ if(!maskOverlayCanvas)maskOverlayCanvas=document.createElement("canvas");
+ if(!maskEffectiveCanvas)maskEffectiveCanvas=document.createElement("canvas");
+ maskOverlayCanvas.width=0;maskOverlayCanvas.height=0;maskEffectiveCanvas.width=0;maskEffectiveCanvas.height=0;
+}
+function initializeMaskCanvas(){
+ resizeMaskCanvasForCurrentGeometry();
+ maskStrokes=[];maskApplied=false;maskInverted=false;maskRevision=0;maskPointer=null;$("maskFeather").value=0;$("maskFeatherValue").textContent="0 px";
  updateMaskActions();
 }
 function paintMaskSegment(context,stroke,from,to){
@@ -355,9 +362,10 @@ function drawMaskOverlay(target,w,h,effectiveMask){
 }
 function geometrySignature(){return JSON.stringify({rotation,flipH,flipV,cropRatio,cropPanX,cropPanY,outW,outH,sourceWidth,sourceHeight});}
 function clearMaskForGeometryChange(){
- if(!maskStrokes.length)return;
- maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;redrawMaskStrokes();
- announce("Framing changed. The background mask was cleared; paint the subject again.");
+ const hadSelection=maskStrokes.length>0;
+ if(hadSelection){maskStrokes=[];maskApplied=false;maskInverted=false;$("maskFeather").value=0;maskRevision++;}
+ resizeMaskCanvasForCurrentGeometry();
+ if(hadSelection){redrawMaskStrokes();announce("Framing changed. The background mask was cleared; paint the subject again.");}
 }
 function drawTo(target,original=false,background=null,source=previewImage,sourceW=sourceWidth,sourceH=sourceHeight){
  const size=outputSize();
@@ -469,7 +477,7 @@ function applyState(s){
  rotation=s.rotation;flipH=s.flipH;flipV=s.flipV;cropRatio=s.cropRatio;
  cropPanX=clamp01(s.cropPanX??0.5);cropPanY=clamp01(s.cropPanY??0.5);
  outW=s.outW;outH=s.outH;look=s.look;lookIntensity=s.lookIntensity;
- maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskInverted=!!s.maskInverted;$("maskFeather").value=s.maskFeather??0;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();redrawMaskStrokes();
+ maskStrokes=s.maskStrokes||[];maskApplied=!!s.maskApplied;maskInverted=!!s.maskInverted;$("maskFeather").value=s.maskFeather??0;maskRevision=s.maskRevision||0;lastGeometrySignature=geometrySignature();resizeMaskCanvasForCurrentGeometry();redrawMaskStrokes();
  $("fade").value=lookIntensity;syncSelections();syncCropInteraction();
  syncDimensionFields();updateLabels();scheduleRender();
 }
@@ -893,6 +901,7 @@ async function runEditorSelfTest(){
   $("rotateRight").click();await afterFrame();
   verify("Rotate keeps preview visible",rotation===90&&hasPixels());
   verify("Changing framing clears an incompatible mask",maskStrokes.length===0&&!maskApplied&&!maskInverted);
+  verify("Mask canvas tracks output geometry",maskCanvas.width===maskDimensions().w&&maskCanvas.height===maskDimensions().h);
   $("flipH").click();await afterFrame();
   verify("Flip keeps preview visible",flipH===true&&hasPixels());
   $("undo").click();await afterFrame();
