@@ -196,7 +196,7 @@ test("photo editor protects unsaved work and provides a lightweight vignette ret
   assert.match(script, /window\.confirm\("Ada perubahan yang belum diekspor/);
   assert.match(script, /window\.addEventListener\("beforeunload",e=>\{\s*if\(hasUnsavedChanges\(\)\)/);
   assert.match(script, /window\.addEventListener\("pagehide",e=>\{/);
-  assert.ok(script.includes("if(!e.persisted){if(segmenterWorker)"));
+  assert.ok(script.includes("if(!e.persisted){if(aiSegmentationTimeout)"));
   assert.ok(script.includes("segmenterWorker.terminate()"));
   assert.ok(script.includes("previewImage.close()"));
   assert.match(script, /function drawVignette\(target,w,h,original=false\)/);
