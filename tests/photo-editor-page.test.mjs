@@ -9,7 +9,7 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 
 
 test("Cloudflare serves static assets directly and invokes Worker first only for API and health routes", () => {
-  assert.match(wrangler, /run_worker_first\s*=\s*\[\s*"\\/healthz"\s*,\s*"\\/api\/\*"\s*\]/);
+  assert.ok(wrangler.includes('run_worker_first = ["/healthz", "/api/*"]'));
   assert.doesNotMatch(wrangler, /run_worker_first\s*=\s*true/);
 });
 
