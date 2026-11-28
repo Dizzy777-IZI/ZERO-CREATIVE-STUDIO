@@ -345,12 +345,11 @@ function drawTo(target,original=false,background=null,source=previewImage,source
  const w=size.w,h=size.h;
  if(!w||!h||w*h>MAX_OUTPUT_PIXELS||w>MAX_OUTPUT_DIMENSION||h>MAX_OUTPUT_DIMENSION)throw new Error("Output melewati batas aman 24 MP / 6.000 px.");
  target.width=w;target.height=h;
- const c=target.getContext("2d",{alpha:background===null});
+ const c=target.getContext("2d",{alpha:true});
  if(!c)throw new Error("Canvas context tidak tersedia.");
  c.save();
  c.setTransform(1,0,0,1,0,0);
  c.clearRect(0,0,w,h);
- if(background){c.fillStyle=background;c.fillRect(0,0,w,h);}
  const r=cropRect(sourceW,sourceH);
  const rotated=Math.abs(rotation%180)===90;
  c.translate(w/2,h/2);
@@ -368,6 +367,7 @@ function drawTo(target,original=false,background=null,source=previewImage,source
  drawSharpen(c,w,h,original);
  drawVignette(c,w,h,original);
  if(!original)applyMaskToContext(c,w,h);
+ if(background){c.save();c.globalCompositeOperation="destination-over";c.fillStyle=background;c.fillRect(0,0,w,h);c.restore();}
  return size;
 }
 function render(original=false,interactive=false){
