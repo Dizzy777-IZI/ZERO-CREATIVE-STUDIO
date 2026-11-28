@@ -1,6 +1,6 @@
 /* ZERO Local Person Segmentation Worker
  * MediaPipe Tasks Vision (Apache-2.0) + Google MediaPipe Selfie Segmenter model (Apache-2.0).
- * Images are transferred from this page to this same-origin worker only. No image bytes are fetched or uploaded.
+ * Images are transferred from this same-origin page to this same-origin worker only. No image bytes are fetched or uploaded.
  */
 const RUNTIME_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/vision_bundle.mjs";
 const WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm";
@@ -12,18 +12,18 @@ const MAX_MODEL_BYTES = 1024 * 1024;
 let segmenter = null;
 let segmenterPromise = null;
 
-function postStatus(id, message) {
-  self.postMessage({ type: "STATUS", id, message });
+function postStatus(id, photoSequence, message) {
+  self.postMessage({ type: "STATUS", id, photoSequence, message });
 }
 
-async function loadSegmenter(id) {
-  postStatus(id, "Loading local AI runtime…");
+async function loadSegmenter(id, photoSequence) {
+  postStatus(id, photoSequence, "Loading local AI runtime…");
   const { FilesetResolver, ImageSegmenter } = await import(RUNTIME_URL);
 
-  postStatus(id, "Preparing on-device inference engine…");
+  postStatus(id, photoSequence, "Preparing on-device inference engine…");
   const vision = await FilesetResolver.forVisionTasks(WASM_BASE_URL);
 
-  postStatus(id, "Downloading verified 250 KB person model…");
+  postStatus(id, photoSequence, "Downloading verified 250 KB person model…");
   const response = await fetch(MODEL_URL, {
     method: "GET",
     mode: "cors",
@@ -31,36 +31,25 @@ async function loadSegmenter(id) {
     cache: "force-cache",
     referrerPolicy: "no-referrer"
   });
-  if (!response.ok) {
-    throw new Error("Model download failed (HTTP " + response.status + ").");
-  }
+  if (!response.ok) throw new Error("Model download failed (HTTP " + response.status + ").");
 
   const declaredLength = Number(response.headers.get("content-length") || 0);
-  if (declaredLength > MAX_MODEL_BYTES) {
-    throw new Error("Model response exceeded the 1 MB safety limit.");
-  }
+  if (declaredLength > MAX_MODEL_BYTES) throw new Error("Model response exceeded the 1 MB safety limit.");
 
   const modelBuffer = await response.arrayBuffer();
   if (modelBuffer.byteLength !== MODEL_BYTES || modelBuffer.byteLength > MAX_MODEL_BYTES) {
     throw new Error("Downloaded model has an unexpected size. The file was rejected.");
   }
 
-  postStatus(id, "Verifying model integrity…");
-  if (!self.crypto?.subtle) {
-    throw new Error("Secure model verification is unavailable in this browser context.");
-  }
+  postStatus(id, photoSequence, "Verifying model integrity…");
+  if (!self.crypto?.subtle) throw new Error("Secure model verification is unavailable in this browser context.");
   const digest = await self.crypto.subtle.digest("SHA-256", modelBuffer);
   const actualHash = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
-  if (actualHash !== MODEL_SHA256) {
-    throw new Error("Model integrity check failed. The downloaded file was rejected.");
-  }
+  if (actualHash !== MODEL_SHA256) throw new Error("Model integrity check failed. The downloaded file was rejected.");
 
-  postStatus(id, "Initializing local person segmentation…");
+  postStatus(id, photoSequence, "Initializing local person segmentation…");
   segmenter = await ImageSegmenter.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetBuffer: new Uint8Array(modelBuffer),
-      delegate: "CPU"
-    },
+    baseOptions: { modelAssetBuffer: new Uint8Array(modelBuffer), delegate: "CPU" },
     runningMode: "IMAGE",
     outputCategoryMask: false,
     outputConfidenceMasks: true
@@ -68,10 +57,10 @@ async function loadSegmenter(id) {
   return segmenter;
 }
 
-async function getSegmenter(id) {
+async function getSegmenter(id, photoSequence) {
   if (segmenter) return segmenter;
   if (!segmenterPromise) {
-    segmenterPromise = loadSegmenter(id).catch(error => {
+    segmenterPromise = loadSegmenter(id, photoSequence).catch(error => {
       segmenterPromise = null;
       throw error;
     });
@@ -89,8 +78,8 @@ self.addEventListener("message", async event => {
     }
     return;
   }
-
   if (message.type !== "SEGMENT_IMAGE") return;
+
   const { id, bitmap, photoSequence } = message;
   if (!bitmap) {
     self.postMessage({ type: "ERROR", id, photoSequence, message: "No image frame was provided to the local worker." });
@@ -99,13 +88,11 @@ self.addEventListener("message", async event => {
 
   let masks = [];
   try {
-    const engine = await getSegmenter(id);
-    postStatus(id, "Detecting person locally on this device…");
+    const engine = await getSegmenter(id, photoSequence);
+    postStatus(id, photoSequence, "Detecting person locally on this device…");
     const result = engine.segment(bitmap);
     masks = result?.confidenceMasks || [];
-    if (!masks.length || !masks[0]) {
-      throw new Error("The person model did not return a confidence mask for this image.");
-    }
+    if (!masks.length || !masks[0]) throw new Error("The person model did not return a confidence mask for this image.");
 
     const mask = masks[0];
     const width = Number(mask.width);
@@ -121,7 +108,6 @@ self.addEventListener("message", async event => {
       const value = Number.isFinite(values[i]) ? Math.max(0, Math.min(1, values[i])) : 0;
       confidence[i] = Math.round(value * 255);
     }
-
     const buffer = confidence.buffer;
     self.postMessage({ type: "RESULT", id, photoSequence, width, height, confidence: buffer }, [buffer]);
   } catch (error) {
