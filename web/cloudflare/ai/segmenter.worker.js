@@ -92,9 +92,12 @@ self.addEventListener("message", async event => {
     postStatus(id, photoSequence, "Detecting person locally on this device…");
     const result = engine.segment(bitmap);
     masks = result?.confidenceMasks || [];
-    if (!masks.length || !masks[0]) throw new Error("The person model did not return a confidence mask for this image.");
-
-    const mask = masks[0];
+    // Selfie Segmenter class order is background (0), person (1).
+    // Prefer the explicit person confidence map; fall back only if a model
+    // packaging variant returns a single foreground confidence map.
+    const personClassIndex = masks.length > 1 ? 1 : 0;
+    const mask = masks[personClassIndex];
+    if (!mask) throw new Error("The person model did not return a person confidence mask for this image.");
     const width = Number(mask.width);
     const height = Number(mask.height);
     const values = mask.getAsFloat32Array();
@@ -109,7 +112,7 @@ self.addEventListener("message", async event => {
       confidence[i] = Math.round(value * 255);
     }
     const buffer = confidence.buffer;
-    self.postMessage({ type: "RESULT", id, photoSequence, width, height, confidence: buffer }, [buffer]);
+    self.postMessage({ type: "RESULT", id, photoSequence, width, height, classIndex: personClassIndex, confidence: buffer }, [buffer]);
   } catch (error) {
     self.postMessage({
       type: "ERROR",
