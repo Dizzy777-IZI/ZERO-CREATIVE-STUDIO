@@ -71,14 +71,15 @@ test("full-resolution source is decoded only for export and stays local", () => 
 
 test("render status announcements are defined and update the visible status line", () => {
   assert.match(html, /<div class="statusline" id="status" role="status"/);
-  const match = script.match(/function announce\\(message\\)\\{([\\s\\S]*?)\\n\\}/);
+  const match = script.match(/function announce\(message\)\{([\s\S]*?)\n\}/);
   assert.ok(match, "announce() must be defined before render() uses it");
   const status = { textContent: "" };
-  const announce = new Function("$", "return function announce(message) {" + match[1] + "\\n}");
+  const announce = new Function("$", "return function announce(message) {" + match[1] + "\n}");
   announce(() => status)("Photo rendered");
   assert.equal(status.textContent, "Photo rendered");
 });
-\ntest("inline photo editor script parses without syntax errors", () => {
+
+test("inline photo editor script parses without syntax errors", () => {
   assert.ok(script, "inline editor script exists");
   assert.doesNotThrow(() => new Script(script));
 });
