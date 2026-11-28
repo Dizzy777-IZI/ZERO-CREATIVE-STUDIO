@@ -230,22 +230,22 @@ test("color grading controls are included in the state and shared row-buffer pix
 
 
 test("manual background masking paints reversible vector strokes and exports true transparency", () => {
-  for (const control of ["maskMode", "brushSize", "maskOverlay", "applyMask", "restoreMask", "clearMask"]) {
+  for (const control of ["maskMode", "brushSize", "maskOverlay", "maskFeather", "invertMask", "applyMask", "restoreMask", "clearMask"]) {
     assert.match(html, new RegExp('id="' + control + '"'));
   }
   assert.match(html, /data-panel="background"/);
   assert.match(script, /const MAX_MASK_STROKES=120,MAX_MASK_POINTS_PER_STROKE=2000/);
   assert.match(script, /function initializeMaskCanvas\(\)/);
   assert.match(script, /function redrawMaskStrokes\(\)/);
-  assert.match(script, /function applyMaskToContext\(target,w,h\)/);
+  assert.match(script, /function applyMaskToContext\(target,w,h,effectiveMask\)/);
   assert.match(script, /target\.globalCompositeOperation="destination-in"/);
-  assert.match(script, /function drawMaskOverlay\(target,w,h\)/);
+  assert.match(script, /function drawMaskOverlay\(target,w,h,effectiveMask\)/);
   assert.match(script, /function finishMaskPaint\(event\)/);
-  assert.match(script, /mode:\$\("maskMode"\)\.value==="erase"\?"erase":"add"/);
+  assert.match(script, /mode:\(maskInverted\?!requestedErase:requestedErase\)\?"erase":"add"/);
   assert.match(script, /function geometrySignature\(\)/);
   assert.match(script, /clearMaskForGeometryChange\(\)/);
-  assert.match(script, /maskStrokes,maskApplied,maskRevision/);
-  assert.match(script, /maskStrokes=s\.maskStrokes\|\|\[\];maskApplied=!!s\.maskApplied/);
+  assert.match(script, /maskStrokes,maskApplied,maskInverted,maskFeather:\+\$\("maskFeather"\)\.value,maskRevision/);
+  assert.match(script, /maskStrokes=s\.maskStrokes\|\|\[\];maskApplied=!!s\.maskApplied;maskInverted=!!s\.maskInverted/);
   assert.ok(script.includes("Manual brush creates a local subject mask"));
   assert.ok(script.includes("Remove background applies transparency outside the selection"));
   assert.ok(script.includes("Undo restores the un-applied manual mask"));
@@ -255,7 +255,7 @@ test("manual background masking paints reversible vector strokes and exports tru
 
 test("JPEG background is composited behind the mask so transparent pixels remain white", () => {
   assert.match(script, /getContext\("2d",\{alpha:true\}\)/);
-  assert.match(script, /if\(!original\)applyMaskToContext\(c,w,h\)/);
+  assert.match(script, /if\(!original&&maskStrokes\.length\)\{const effectiveMask=renderEffectiveMask\(w,h\);applyMaskToContext\(c,w,h,effectiveMask\);\}/);
   assert.match(script, /globalCompositeOperation="destination-over";c\.fillStyle=background/);
 });
 
